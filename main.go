@@ -5,6 +5,7 @@ import (
 	"MCAuth-api/internal/helpers"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -141,6 +142,9 @@ func main() {
 		defer cancel()
 		res, err := rdb.Get(ctx, fmt.Sprintf("token:%s", body.Token)).Result()
 		if err != nil {
+			if errors.Is(err, redis.Nil) {
+				return c.SendStatus(404)
+			}
 			return helpers.HandleError(c, err)
 		}
 

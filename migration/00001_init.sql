@@ -22,7 +22,7 @@ CREATE TABLE logins (
     id bigserial PRIMARY KEY,
     account_id bigint REFERENCES accounts(id) ON DELETE CASCADE NOT NULL,
     uuid uuid NOT NULL,
-    token varchar(64) NOT NULL,
+    token varchar(32) NOT NULL,
     ip inet NOT NULL,
     protocol_version smallint NOT NULL,
     brand varchar,

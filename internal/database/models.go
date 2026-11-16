@@ -25,6 +25,7 @@ type Login struct {
 	ProtocolVersion int16       `json:"protocol_version"`
 	Brand           pgtype.Text `json:"brand"`
 	Lang            pgtype.Text `json:"lang"`
+	Token           pgtype.Text `json:"token"`
 }
 
 type Session struct {

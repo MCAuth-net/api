@@ -3,6 +3,8 @@ module MCAuth-api
 go 1.27
 
 require (
+	github.com/gofiber/fiber/v3 v3.7.0
+	github.com/gofiber/storage/redis/v3 v3.6.4
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/pressly/goose/v3 v3.30.1
 	github.com/redis/go-redis/v9 v9.23.0
@@ -10,7 +12,6 @@ require (
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/gofiber/fiber/v3 v3.7.0 // indirect
 	github.com/gofiber/schema v1.9.3 // indirect
 	github.com/gofiber/utils/v2 v2.6.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect

@@ -6,10 +6,13 @@ package database
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	GetAccounts(ctx context.Context) ([]Account, error)
+	GetUUIDFromLoginToken(ctx context.Context, token pgtype.Text) (pgtype.UUID, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -1,9 +1,13 @@
 -- +goose up
 CREATE TABLE accounts (
     id bigserial PRIMARY KEY,
-    uuid uuid[] NOT NULL DEFAULT '{}',
     email varchar UNIQUE,
     password varchar
+);
+
+CREATE TABLE account_uuids (
+    uuid uuid PRIMARY KEY,
+    account_id bigint NOT NULL REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE TABLE sessions (
@@ -18,6 +22,7 @@ CREATE TABLE logins (
     id bigserial PRIMARY KEY,
     account_id bigint REFERENCES accounts(id) ON DELETE CASCADE NOT NULL,
     uuid uuid NOT NULL,
+    token varchar(64) NOT NULL,
     ip inet NOT NULL,
     protocol_version smallint NOT NULL,
     brand varchar,
@@ -26,5 +31,5 @@ CREATE TABLE logins (
 
 -- +goose down
 DROP TABLE IF EXISTS
-    accounts, sessions, logins
+    accounts, account_uuids, sessions, logins
 CASCADE;

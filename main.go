@@ -153,15 +153,15 @@ func main() {
 			return helpers.HandleError(c, err)
 		}
 		if verified {
-			err := rdb.Del(ctx, fmt.Sprintf("token:%s", body.Token)).Err()
-			if err != nil {
-				return helpers.HandleError(c, err)
-			}
 			uuid, err := queries.GetUUIDFromLoginToken(c.Context(), body.Token)
 			if err != nil {
 				return helpers.HandleError(c, err)
 			}
 
+			err = rdb.Del(ctx, fmt.Sprintf("token:%s", body.Token)).Err()
+			if err != nil {
+				return helpers.HandleError(c, err)
+			}
 			return c.Status(200).SendString(uuid.String())
 		}
 

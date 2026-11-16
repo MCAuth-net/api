@@ -11,21 +11,25 @@ import (
 )
 
 type Account struct {
-	ID       int64         `json:"id"`
-	Uuid     []pgtype.UUID `json:"uuid"`
-	Email    pgtype.Text   `json:"email"`
-	Password pgtype.Text   `json:"password"`
+	ID       int64       `json:"id"`
+	Email    pgtype.Text `json:"email"`
+	Password pgtype.Text `json:"password"`
+}
+
+type AccountUuid struct {
+	Uuid      pgtype.UUID `json:"uuid"`
+	AccountID int64       `json:"account_id"`
 }
 
 type Login struct {
 	ID              int64       `json:"id"`
 	AccountID       int64       `json:"account_id"`
 	Uuid            pgtype.UUID `json:"uuid"`
+	Token           string      `json:"token"`
 	Ip              netip.Addr  `json:"ip"`
 	ProtocolVersion int16       `json:"protocol_version"`
 	Brand           pgtype.Text `json:"brand"`
 	Lang            pgtype.Text `json:"lang"`
-	Token           pgtype.Text `json:"token"`
 }
 
 type Session struct {

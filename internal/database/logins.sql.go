@@ -15,7 +15,7 @@ const getUUIDFromLoginToken = `-- name: GetUUIDFromLoginToken :one
 SELECT uuid FROM logins WHERE token = $1
 `
 
-func (q *Queries) GetUUIDFromLoginToken(ctx context.Context, token pgtype.Text) (pgtype.UUID, error) {
+func (q *Queries) GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error) {
 	row := q.db.QueryRow(ctx, getUUIDFromLoginToken, token)
 	var uuid pgtype.UUID
 	err := row.Scan(&uuid)

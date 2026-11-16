@@ -10,7 +10,7 @@ import (
 )
 
 const getAccounts = `-- name: GetAccounts :many
-SELECT id, uuid, email, password FROM accounts ORDER BY id
+SELECT id, email, password FROM accounts ORDER BY id
 `
 
 func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
@@ -22,12 +22,7 @@ func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
 	var items []Account
 	for rows.Next() {
 		var i Account
-		if err := rows.Scan(
-			&i.ID,
-			&i.Uuid,
-			&i.Email,
-			&i.Password,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.Email, &i.Password); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

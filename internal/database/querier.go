@@ -12,7 +12,7 @@ import (
 
 type Querier interface {
 	GetAccounts(ctx context.Context) ([]Account, error)
-	GetUUIDFromLoginToken(ctx context.Context, token pgtype.Text) (pgtype.UUID, error)
+	GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error)
 }
 
 var _ Querier = (*Queries)(nil)

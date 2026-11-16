@@ -14,7 +14,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	redisStorage "github.com/gofiber/storage/redis/v3"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
@@ -154,10 +153,7 @@ func main() {
 			if err != nil {
 				return helpers.HandleError(c, err)
 			}
-			uuid, err := queries.GetUUIDFromLoginToken(c.Context(), pgtype.Text{
-				String: body.Token,
-				Valid:  true,
-			})
+			uuid, err := queries.GetUUIDFromLoginToken(c.Context(), body.Token)
 			if err != nil {
 				return helpers.HandleError(c, err)
 			}

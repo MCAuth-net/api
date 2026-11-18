@@ -24,6 +24,17 @@ func ParseBody[T any](c fiber.Ctx) (T, error) {
 	return body, nil
 }
 
+func ParseQueries[T any](c fiber.Ctx) (T, error) {
+	var queries T
+
+	err := c.Bind().Query(&queries)
+	if err != nil {
+		return queries, err
+	}
+
+	return queries, nil
+}
+
 func GetRedisContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 2*time.Second)
 }

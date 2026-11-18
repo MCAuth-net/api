@@ -3,8 +3,10 @@ package main
 import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
+	"MCAuth-api/internal/minecraft"
 	"context"
 	"database/sql"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"log"
@@ -134,6 +136,10 @@ func main() {
 	type TokenCheckRequest struct {
 		Token string `json:"token"`
 	}
+	type TokenCheckResponse struct {
+		UUID string `json:"uuid"`
+		Name string `json:"name"`
+	}
 	v1.Post("/token/check", limiter.New(limiter.Config{
 		Max:        2,
 		Expiration: time.Second,
@@ -171,7 +177,18 @@ func main() {
 			if err != nil {
 				return helpers.HandleError(c, err)
 			}
-			return c.Status(200).SendString(uuid.String())
+
+			name, err := minecraft.GetName(uuid.String(), rdb)
+			if err != nil {
+				return helpers.HandleError(c, err)
+			}
+
+			data, err := json.Marshal(&TokenCheckResponse{
+				UUID: uuid.String(),
+				Name: name,
+			})
+
+			return c.Status(200).Send(data)
 		}
 
 		return c.SendStatus(404)

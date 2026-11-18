@@ -6,7 +6,6 @@ import (
 	"MCAuth-api/internal/minecraft"
 	"context"
 	"database/sql"
-	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"log"
@@ -14,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/goccy/go-json/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
@@ -110,6 +110,10 @@ func main() {
 		},
 	}))
 
+	type TokenResponse struct {
+		Token    string `json:"token"`
+		Mnemonic string `json:"mnemonic"`
+	}
 	v1.Get("/token", limiter.New(limiter.Config{
 		Max:        5,
 		Expiration: 5 * time.Minute,
@@ -122,15 +126,24 @@ func main() {
 		if err != nil {
 			return helpers.HandleError(c, err)
 		}
-
-		ctx, cancel := helpers.GetRedisContext()
-		defer cancel()
-		err = rdb.Set(ctx, fmt.Sprintf("token:%s", token), "false", 5*time.Minute).Err()
+		mnemonic, err := helpers.GenerateMnemonic()
 		if err != nil {
 			return helpers.HandleError(c, err)
 		}
 
-		return c.Status(200).SendString(token)
+		ctx, cancel := helpers.GetRedisContext()
+		defer cancel()
+		err = rdb.Set(ctx, fmt.Sprintf("mnemonic:%s", mnemonic), token, 5*time.Minute).Err()
+		if err != nil {
+			return helpers.HandleError(c, err)
+		}
+
+		data, err := json.Marshal(&TokenResponse{
+			Token:    token,
+			Mnemonic: mnemonic,
+		})
+
+		return c.Status(200).Send(data)
 	})
 
 	type TokenCheckRequest struct {

@@ -3,11 +3,13 @@ module MCAuth-api
 go 1.27
 
 require (
+	github.com/goccy/go-json v0.12.0
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/gofiber/storage/redis/v3 v3.6.4
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/pressly/goose/v3 v3.30.1
 	github.com/redis/go-redis/v9 v9.23.0
+	github.com/tyler-smith/go-bip39 v1.1.0
 )
 
 require (

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"time"
 
@@ -104,6 +105,14 @@ func main() {
 		Max:        60,
 		Expiration: time.Minute,
 		Storage:    store,
+		Next: func(c fiber.Ctx) bool {
+			return slices.ContainsFunc([]string{
+				"/token",
+				"/token/check",
+			}, func(p string) bool {
+				return c.Path() == "/v1"+p
+			})
+		},
 		KeyGenerator: func(c fiber.Ctx) string {
 			return fmt.Sprintf("v1:%s", c.IP())
 		},
@@ -151,7 +160,7 @@ func main() {
 		Name string `json:"name"`
 	}
 	v1.Post("/token/check", limiter.New(limiter.Config{
-		Max:        2,
+		Max:        3,
 		Expiration: time.Second,
 		Storage:    store,
 		KeyGenerator: func(c fiber.Ctx) string {

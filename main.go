@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	redisStorage "github.com/gofiber/storage/redis/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -88,6 +89,14 @@ func main() {
 	log.Println("Starting API")
 
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: []string{
+			"https://mcauth.net",
+			"http://localhost:3000",
+		},
+	}))
+
 	store := redisStorage.NewFromConnection(rdb)
 
 	v1 := app.Group("/v1", limiter.New(limiter.Config{

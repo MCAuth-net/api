@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/goccy/go-json/v2"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -37,4 +38,13 @@ func ParseQueries[T any](c fiber.Ctx) (T, error) {
 
 func GetRedisContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 2*time.Second)
+}
+
+func SendSuccess(c fiber.Ctx, data any) error {
+	dat, err := json.Marshal(data)
+	if err != nil {
+		return HandleError(c, err)
+	}
+	c.Set("Content-Type", "application/json")
+	return c.Status(200).Send(dat)
 }

@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goccy/go-json/v2"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
@@ -138,12 +137,10 @@ func main() {
 			return helpers.HandleError(c, err)
 		}
 
-		data, err := json.Marshal(&TokenResponse{
+		return helpers.SendSuccess(c, &TokenResponse{
 			Token:    token,
 			Mnemonic: mnemonic,
 		})
-
-		return c.Status(200).Send(data)
 	})
 
 	type TokenCheckRequest struct {
@@ -196,12 +193,10 @@ func main() {
 				return helpers.HandleError(c, err)
 			}
 
-			data, err := json.Marshal(&TokenCheckResponse{
+			return helpers.SendSuccess(c, &TokenCheckResponse{
 				UUID: uuid.String(),
 				Name: name,
 			})
-
-			return c.Status(200).Send(data)
 		}
 
 		return c.SendStatus(404)

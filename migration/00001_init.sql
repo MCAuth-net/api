@@ -13,9 +13,10 @@ CREATE TABLE account_uuids (
 CREATE TABLE sessions (
     id bigserial PRIMARY KEY,
     account_id bigint REFERENCES accounts(id) ON DELETE CASCADE NOT NULL,
-    token varchar NOT NULL UNIQUE,
+    token varchar(64) NOT NULL UNIQUE,
     ip inet NOT NULL,
-    agent varchar NOT NULL
+    agent varchar NOT NULL,
+    expires timestamptz NOT NULL DEFAULT NOW() + INTERVAL '30 days'
 );
 
 CREATE TABLE logins (

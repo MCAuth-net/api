@@ -33,9 +33,10 @@ type Login struct {
 }
 
 type Session struct {
-	ID        int64      `json:"id"`
-	AccountID int64      `json:"account_id"`
-	Token     string     `json:"token"`
-	Ip        netip.Addr `json:"ip"`
-	Agent     string     `json:"agent"`
+	ID        int64              `json:"id"`
+	AccountID int64              `json:"account_id"`
+	Token     string             `json:"token"`
+	Ip        netip.Addr         `json:"ip"`
+	Agent     string             `json:"agent"`
+	Expires   pgtype.Timestamptz `json:"expires"`
 }

@@ -7,7 +7,20 @@ package database
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const getAccountByUUID = `-- name: GetAccountByUUID :one
+SELECT account_id FROM account_uuids WHERE uuid = $1
+`
+
+func (q *Queries) GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getAccountByUUID, uuid)
+	var account_id int64
+	err := row.Scan(&account_id)
+	return account_id, err
+}
 
 const getAccounts = `-- name: GetAccounts :many
 SELECT id, email, password FROM accounts ORDER BY id

@@ -11,6 +11,8 @@ import (
 )
 
 type Querier interface {
+	CreateSession(ctx context.Context, arg CreateSessionParams) (pgtype.Timestamptz, error)
+	GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error)
 	GetAccountFromSessionToken(ctx context.Context, token string) (Account, error)
 	GetAccounts(ctx context.Context) ([]Account, error)
 	GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error)

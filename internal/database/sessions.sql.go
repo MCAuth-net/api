@@ -7,7 +7,40 @@ package database
 
 import (
 	"context"
+	"net/netip"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const createSession = `-- name: CreateSession :one
+INSERT INTO sessions (account_id, token, ip, agent)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4
+)
+RETURNING expires
+`
+
+type CreateSessionParams struct {
+	AccountID int64      `json:"account_id"`
+	Token     string     `json:"token"`
+	Ip        netip.Addr `json:"ip"`
+	Agent     string     `json:"agent"`
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, createSession,
+		arg.AccountID,
+		arg.Token,
+		arg.Ip,
+		arg.Agent,
+	)
+	var expires pgtype.Timestamptz
+	err := row.Scan(&expires)
+	return expires, err
+}
 
 const getAccountFromSessionToken = `-- name: GetAccountFromSessionToken :one
 SELECT a.id, a.email, a.password FROM accounts a

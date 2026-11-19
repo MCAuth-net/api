@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	GetAccountFromSessionToken(ctx context.Context, token string) (Account, error)
 	GetAccounts(ctx context.Context) ([]Account, error)
 	GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error)
 }

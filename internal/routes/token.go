@@ -6,7 +6,6 @@ import (
 	"MCAuth-api/internal/minecraft"
 	"errors"
 	"fmt"
-	"net/netip"
 	"strconv"
 	"time"
 
@@ -29,7 +28,7 @@ func Token(c fiber.Ctx, rdb *redis.Client) error {
 		return helpers.HandleError(c, err)
 	}
 
-	ctx, cancel := helpers.GetRedisContext()
+	ctx, cancel := helpers.GetContext()
 	defer cancel()
 	err = rdb.Set(ctx, fmt.Sprintf("mnemonic:%s", mnemonic), token, 5*time.Minute).Err()
 	if err != nil {
@@ -56,7 +55,7 @@ func TokenCheck(c fiber.Ctx, queries *database.Queries, rdb *redis.Client) error
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetRedisContext()
+	ctx, cancel := helpers.GetContext()
 	defer cancel()
 	res, err := rdb.Get(ctx, fmt.Sprintf("token:%s", body.Token)).Result()
 	if err != nil {
@@ -86,41 +85,15 @@ func TokenCheck(c fiber.Ctx, queries *database.Queries, rdb *redis.Client) error
 			return helpers.HandleError(c, err)
 		}
 
-		ip, err := netip.ParseAddr(c.IP())
-		if err != nil {
-			return helpers.HandleError(c, err)
-		}
-
-		token, err := helpers.GenerateToken()
-		if err != nil {
-			return helpers.HandleError(c, err)
-		}
-
 		account, err := queries.GetAccountByUUID(ctx, uuid)
 		if err != nil {
 			return helpers.HandleError(c, err)
 		}
 
-		session, err := queries.CreateSession(ctx, database.CreateSessionParams{
-			AccountID: account,
-			Token:     token,
-			Ip:        ip,
-			Agent:     c.UserAgent(),
-		})
+		err = CreateSession(c, ctx, queries, account)
 		if err != nil {
 			return helpers.HandleError(c, err)
 		}
-
-		c.Cookie(&fiber.Cookie{
-			Name:     "session",
-			Value:    token,
-			Domain:   ".mcauth.net",
-			Path:     "/",
-			Expires:  session.Time,
-			Secure:   true,
-			HTTPOnly: true,
-			SameSite: "Lax",
-		})
 		return helpers.SendSuccess(c, &TokenCheckResponse{
 			UUID: uuid.String(),
 			Name: name,

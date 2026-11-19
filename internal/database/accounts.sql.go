@@ -11,6 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getAccountByEmail = `-- name: GetAccountByEmail :one
+SELECT id, password FROM accounts WHERE email = $1
+`
+
+type GetAccountByEmailRow struct {
+	ID       int64       `json:"id"`
+	Password pgtype.Text `json:"password"`
+}
+
+func (q *Queries) GetAccountByEmail(ctx context.Context, email pgtype.Text) (GetAccountByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getAccountByEmail, email)
+	var i GetAccountByEmailRow
+	err := row.Scan(&i.ID, &i.Password)
+	return i, err
+}
+
 const getAccountByUUID = `-- name: GetAccountByUUID :one
 SELECT account_id FROM account_uuids WHERE uuid = $1
 `

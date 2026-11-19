@@ -36,7 +36,7 @@ func ParseQueries[T any](c fiber.Ctx) (T, error) {
 	return queries, nil
 }
 
-func GetRedisContext() (context.Context, context.CancelFunc) {
+func GetContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 2*time.Second)
 }
 

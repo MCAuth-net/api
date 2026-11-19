@@ -17,7 +17,7 @@ type Profile struct {
 }
 
 func GetName(uuid string, rdb *redis.Client) (string, error) {
-	ctx, cancel := helpers.GetRedisContext()
+	ctx, cancel := helpers.GetContext()
 	defer cancel()
 
 	cache, err := rdb.Get(ctx, fmt.Sprintf("name:%s", uuid)).Result()

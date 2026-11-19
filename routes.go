@@ -68,5 +68,16 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				})
 			}),
 		},
+		"auth": fiber.Map{
+			helpers.Limiter: limiter.New(limiter.Config{
+				Max:        5,
+				Expiration: 5 * time.Minute,
+				Storage:    store,
+				KeyGenerator: func(c fiber.Ctx) string {
+					return fmt.Sprintf("v1:auth:%s", c.IP())
+				},
+			}),
+			fiber.MethodPost: func(c fiber.Ctx) error { return routes.Login(c, queries) },
+		},
 	}
 }

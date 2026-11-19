@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -46,6 +47,26 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				}),
 				fiber.MethodPost: func(c fiber.Ctx) error { return routes.TokenCheck(c, queries, rdb) },
 			},
+		},
+		"me": fiber.Map{
+			helpers.NeedsAuth: true,
+			fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				uuids := make([]string, 0, len(account.UUIDs))
+
+				for _, u := range account.UUIDs {
+					if !u.Valid {
+						continue
+					}
+
+					uuids = append(uuids, uuid.UUID(u.Bytes).String())
+				}
+
+				return c.JSON(fiber.Map{
+					"id":    account.Account.ID,
+					"email": account.Account.Email,
+					"uuids": uuids,
+				})
+			}),
 		},
 	}
 }

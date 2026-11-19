@@ -123,6 +123,7 @@ func registerRoute(router fiber.Router, method, path string, value any, state ro
 		panic(fmt.Sprintf("routes: %s %s: no handlers", method, path))
 	}
 
+	// order: limiter -> auth -> group middlewares -> route handlers
 	chain := make([]any, 0, len(handlers)+len(state.middlewares)+2)
 	if state.limiter != nil {
 		chain = append(chain, state.limiter)

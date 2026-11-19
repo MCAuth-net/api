@@ -6,9 +6,15 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const accountKey = "account"
+
+type AuthedAccount struct {
+	Account database.Account
+	UUIDs   []pgtype.UUID
+}
 
 func Auth(queries *database.Queries) fiber.Handler {
 	return func(c fiber.Ctx) error {
@@ -28,18 +34,23 @@ func Auth(queries *database.Queries) fiber.Handler {
 			return HandleError(c, err)
 		}
 
-		c.Locals(accountKey, account)
+		uuids, err := queries.GetUUIDsByAccountID(c.Context(), account.ID)
+		if err != nil {
+			return HandleError(c, err)
+		}
+
+		c.Locals(accountKey, AuthedAccount{Account: account, UUIDs: uuids})
 		return c.Next()
 	}
 }
 
-func Map(handler func(c fiber.Ctx, account database.Account) error) fiber.Handler {
+func Map(handler func(c fiber.Ctx, account AuthedAccount) error) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		account, ok := c.Locals(accountKey).(database.Account)
+		authed, ok := c.Locals(accountKey).(AuthedAccount)
 		if !ok {
 			return c.SendStatus(401)
 		}
 
-		return handler(c, account)
+		return handler(c, authed)
 	}
 }

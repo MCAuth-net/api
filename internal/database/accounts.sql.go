@@ -45,3 +45,27 @@ func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
 	}
 	return items, nil
 }
+
+const getUUIDsByAccountID = `-- name: GetUUIDsByAccountID :many
+SELECT uuid FROM account_uuids WHERE account_id = $1
+`
+
+func (q *Queries) GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, getUUIDsByAccountID, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var uuid pgtype.UUID
+		if err := rows.Scan(&uuid); err != nil {
+			return nil, err
+		}
+		items = append(items, uuid)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -92,6 +92,7 @@ func main() {
 			"https://mcauth.net",
 			"http://localhost:3000",
 		},
+		AllowCredentials: true,
 	}))
 
 	store := redisStorage.NewFromConnection(rdb)

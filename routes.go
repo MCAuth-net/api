@@ -4,6 +4,7 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/routes"
+	"MCAuth-api/internal/routes/profile"
 	"fmt"
 	"time"
 
@@ -48,25 +49,53 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				fiber.MethodPost: func(c fiber.Ctx) error { return routes.TokenCheck(c, queries, rdb) },
 			},
 		},
-		"me": fiber.Map{
+		"profile": fiber.Map{
 			helpers.NeedsAuth: true,
-			fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
-				uuids := make([]string, 0, len(account.UUIDs))
+			"me": fiber.Map{
+				fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+					uuids := make([]string, 0, len(account.UUIDs))
 
-				for _, u := range account.UUIDs {
-					if !u.Valid {
-						continue
+					for _, u := range account.UUIDs {
+						if !u.Valid {
+							continue
+						}
+
+						uuids = append(uuids, uuid.UUID(u.Bytes).String())
 					}
 
-					uuids = append(uuids, uuid.UUID(u.Bytes).String())
-				}
-
-				return c.JSON(fiber.Map{
-					"id":    account.Account.ID,
-					"email": account.Account.Email,
-					"uuids": uuids,
-				})
-			}),
+					return c.JSON(fiber.Map{
+						"id":    account.Account.ID,
+						"email": account.Account.Email,
+						"uuids": uuids,
+					})
+				}),
+			},
+			"change": fiber.Map{
+				helpers.Limiter: limiter.New(limiter.Config{
+					Max:        3,
+					Expiration: time.Hour,
+					Storage:    store,
+					KeyGenerator: func(c fiber.Ctx) string {
+						return fmt.Sprintf("v1:profile:change:%s", c.IP())
+					},
+				}),
+				"email": fiber.Map{
+					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangeEmail(c, account, rdb) }),
+					"confirm": fiber.Map{
+						helpers.Limiter: limiter.New(limiter.Config{
+							Max:        10,
+							Expiration: time.Minute,
+							Storage:    store,
+							KeyGenerator: func(c fiber.Ctx) string {
+								return fmt.Sprintf("v1:profile:change:confirm:%s", c.IP())
+							},
+						}),
+						fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+							return profile.ConfirmEmail(c, account, queries, rdb)
+						}),
+					},
+				},
+			},
 		},
 		"auth": fiber.Map{
 			helpers.Limiter: limiter.New(limiter.Config{

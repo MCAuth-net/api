@@ -18,6 +18,7 @@ type Querier interface {
 	GetAccounts(ctx context.Context) ([]Account, error)
 	GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error)
 	GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]pgtype.UUID, error)
+	SetEmail(ctx context.Context, arg SetEmailParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

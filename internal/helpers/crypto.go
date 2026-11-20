@@ -38,6 +38,14 @@ func GenerateMnemonic() (string, error) {
 	return words[first.Int64()] + "-" + words[second.Int64()], nil
 }
 
+func GenerateOTP() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
+
 const (
 	memory      = 65536
 	iterations  = 4

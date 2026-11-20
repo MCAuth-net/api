@@ -31,8 +31,8 @@ func main() {
 		"postgres://%s:%s@%s:%s/%s",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
-		getEnv("POSTGRES_HOST", "localhost"),
-		getEnv("POSTGRES_PORT", "5432"),
+		helpers.Getenv("POSTGRES_HOST", "localhost"),
+		helpers.Getenv("POSTGRES_PORT", "5432"),
 		os.Getenv("POSTGRES_DATABASE"),
 	)
 
@@ -72,7 +72,7 @@ func main() {
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     getEnv("REDIS_ADDR", "localhost:6379"),
+		Addr:     helpers.Getenv("REDIS_ADDR", "localhost:6379"),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       redisDB,
 	})
@@ -102,12 +102,4 @@ func main() {
 	if err := app.Listen(":" + os.Getenv("PORT")); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func getEnv(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-	return value
 }

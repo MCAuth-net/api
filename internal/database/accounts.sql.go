@@ -85,3 +85,20 @@ func (q *Queries) GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]p
 	}
 	return items, nil
 }
+
+const setEmail = `-- name: SetEmail :execrows
+UPDATE accounts SET email = $2 WHERE id = $1
+`
+
+type SetEmailParams struct {
+	ID    int64       `json:"id"`
+	Email pgtype.Text `json:"email"`
+}
+
+func (q *Queries) SetEmail(ctx context.Context, arg SetEmailParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setEmail, arg.ID, arg.Email)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}

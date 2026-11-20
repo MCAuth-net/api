@@ -3,6 +3,7 @@ package helpers
 import (
 	"MCAuth-api/internal/database"
 	"errors"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
@@ -12,7 +13,7 @@ import (
 const accountKey = "account"
 
 type AuthedAccount struct {
-	Account database.Account
+	Account database.GetAccountFromSessionTokenRow
 	UUIDs   []pgtype.UUID
 }
 
@@ -32,6 +33,14 @@ func Auth(queries *database.Queries) fiber.Handler {
 				return c.SendStatus(401)
 			}
 			return HandleError(c, err)
+		}
+
+		if time.Now().After(account.Expires.Time) {
+			_, err = queries.RemoveSesison(c.Context(), account.SessionID)
+			if err != nil {
+				return HandleError(c, err)
+			}
+			return c.SendStatus(401)
 		}
 
 		uuids, err := queries.GetUUIDsByAccountID(c.Context(), account.ID)

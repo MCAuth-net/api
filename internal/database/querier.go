@@ -14,10 +14,11 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (pgtype.Timestamptz, error)
 	GetAccountByEmail(ctx context.Context, email pgtype.Text) (GetAccountByEmailRow, error)
 	GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error)
-	GetAccountFromSessionToken(ctx context.Context, token string) (Account, error)
+	GetAccountFromSessionToken(ctx context.Context, token string) (GetAccountFromSessionTokenRow, error)
 	GetAccounts(ctx context.Context) ([]Account, error)
 	GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error)
 	GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]pgtype.UUID, error)
+	RemoveSesison(ctx context.Context, id int64) (int64, error)
 	SetEmail(ctx context.Context, arg SetEmailParams) (int64, error)
 }
 

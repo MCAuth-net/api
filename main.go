@@ -7,8 +7,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -20,6 +22,27 @@ import (
 )
 
 func main() {
+	var logLevel slog.LevelVar
+
+	level := slog.LevelInfo
+
+	switch strings.ToUpper(os.Getenv("LOG_LEVEL")) {
+	case "DEBUG":
+		level = slog.LevelDebug
+	case "INFO":
+		level = slog.LevelInfo
+	case "WARN":
+		level = slog.LevelWarn
+	case "ERROR":
+		level = slog.LevelError
+	}
+
+	logLevel.Set(level)
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: &logLevel,
+	})))
+
 	if os.Getenv("PORT") == "" {
 		os.Setenv("PORT", "8080")
 	}

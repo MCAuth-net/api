@@ -19,7 +19,7 @@ type Querier interface {
 	GetAccounts(ctx context.Context) ([]Account, error)
 	GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error)
 	GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]pgtype.UUID, error)
-	RemoveSesison(ctx context.Context, id int64) (int64, error)
+	RemoveSession(ctx context.Context, token string) (int64, error)
 	SetEmail(ctx context.Context, arg SetEmailParams) (int64, error)
 }
 

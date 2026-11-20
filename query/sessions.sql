@@ -1,5 +1,5 @@
 -- name: GetAccountFromSessionToken :one
-SELECT a.*, s.id AS session_id, s.expires AS expires FROM accounts a
+SELECT a.*, s.expires AS expires FROM accounts a
 JOIN sessions s ON s.account_id = a.id
 WHERE s.token = $1;
 
@@ -13,5 +13,5 @@ VALUES (
 )
 RETURNING expires;
 
--- name: RemoveSesison :execrows
-DELETE FROM sessions WHERE id = $1;
+-- name: RemoveSession :execrows
+DELETE FROM sessions WHERE token = $1;

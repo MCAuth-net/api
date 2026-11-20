@@ -43,17 +43,16 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (p
 }
 
 const getAccountFromSessionToken = `-- name: GetAccountFromSessionToken :one
-SELECT a.id, a.email, a.password, s.id AS session_id, s.expires AS expires FROM accounts a
+SELECT a.id, a.email, a.password, s.expires AS expires FROM accounts a
 JOIN sessions s ON s.account_id = a.id
 WHERE s.token = $1
 `
 
 type GetAccountFromSessionTokenRow struct {
-	ID        int64              `json:"id"`
-	Email     pgtype.Text        `json:"email"`
-	Password  pgtype.Text        `json:"password"`
-	SessionID int64              `json:"session_id"`
-	Expires   pgtype.Timestamptz `json:"expires"`
+	ID       int64              `json:"id"`
+	Email    pgtype.Text        `json:"email"`
+	Password pgtype.Text        `json:"password"`
+	Expires  pgtype.Timestamptz `json:"expires"`
 }
 
 func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) (GetAccountFromSessionTokenRow, error) {
@@ -63,18 +62,17 @@ func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) 
 		&i.ID,
 		&i.Email,
 		&i.Password,
-		&i.SessionID,
 		&i.Expires,
 	)
 	return i, err
 }
 
-const removeSesison = `-- name: RemoveSesison :execrows
-DELETE FROM sessions WHERE id = $1
+const removeSession = `-- name: RemoveSession :execrows
+DELETE FROM sessions WHERE token = $1
 `
 
-func (q *Queries) RemoveSesison(ctx context.Context, id int64) (int64, error) {
-	result, err := q.db.Exec(ctx, removeSesison, id)
+func (q *Queries) RemoveSession(ctx context.Context, token string) (int64, error) {
+	result, err := q.db.Exec(ctx, removeSession, token)
 	if err != nil {
 		return 0, err
 	}

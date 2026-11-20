@@ -36,7 +36,7 @@ func Auth(queries *database.Queries) fiber.Handler {
 		}
 
 		if time.Now().After(account.Expires.Time) {
-			_, err = queries.RemoveSesison(c.Context(), account.SessionID)
+			_, err = queries.RemoveSession(c.Context(), token)
 			if err != nil {
 				return HandleError(c, err)
 			}

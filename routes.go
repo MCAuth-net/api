@@ -110,6 +110,18 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				},
 			}),
 			fiber.MethodPost: func(c fiber.Ctx) error { return routes.Login(c, queries) },
+			fiber.MethodDelete: func(c fiber.Ctx) error {
+				ctx, cancel := helpers.GetContext()
+				defer cancel()
+
+				_, err := queries.RemoveSession(ctx, c.Cookies("session"))
+				if err != nil {
+					return helpers.HandleError(c, err)
+				}
+				c.ClearCookie("session")
+
+				return c.SendStatus(200)
+			},
 		},
 	}
 }

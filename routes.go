@@ -76,7 +76,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 					Expiration: time.Hour,
 					Storage:    store,
 					KeyGenerator: func(c fiber.Ctx) string {
-						return fmt.Sprintf("v1:profile:change:%s", c.IP())
+						return fmt.Sprintf("v1:profile:change:%s:%s", c.Path(), c.IP())
 					},
 				}),
 				"email": fiber.Map{
@@ -95,6 +95,9 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 						}),
 					},
 				},
+				"password": helpers.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+					return profile.ChangePassword(c, account, queries)
+				})),
 			},
 		},
 		"auth": fiber.Map{

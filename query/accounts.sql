@@ -12,3 +12,6 @@ SELECT uuid FROM account_uuids WHERE account_id = $1;
 
 -- name: SetEmail :execrows
 UPDATE accounts SET email = $2 WHERE id = $1;
+
+-- name: ChangePassword :execrows
+UPDATE accounts SET password = $2 WHERE id = $1;

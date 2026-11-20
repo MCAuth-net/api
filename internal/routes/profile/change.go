@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -101,6 +103,68 @@ func ConfirmEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		},
 	})
 
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	return c.SendStatus(200)
+}
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
+	body, err := helpers.ParseBody[ChangePasswordRequest](c)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	var lower, upper, digit, special bool
+
+	for _, r := range body.NewPassword {
+		switch {
+		case unicode.IsLower(r):
+			lower = true
+		case unicode.IsUpper(r):
+			upper = true
+		case unicode.IsDigit(r):
+			digit = true
+		case unicode.IsPunct(r) || unicode.IsSymbol(r):
+			special = true
+		}
+	}
+
+	length := utf8.RuneCountInString(body.NewPassword)
+	if !lower || !upper || !digit || !special || length < 8 || length > 64 {
+		return c.SendStatus(400)
+	}
+
+	ctx, cancel := helpers.GetContext()
+	defer cancel()
+
+	old, err := helpers.Compare(body.OldPassword, account.Account.Password.String)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	if !old {
+		return c.SendStatus(401)
+	}
+
+	hash, err := helpers.Hash(body.NewPassword)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	_, err = queries.ChangePassword(ctx, database.ChangePasswordParams{
+		ID: account.Account.ID,
+		Password: pgtype.Text{
+			String: hash,
+			Valid:  true,
+		},
+	})
 	if err != nil {
 		return helpers.HandleError(c, err)
 	}

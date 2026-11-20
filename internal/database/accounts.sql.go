@@ -11,6 +11,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const changePassword = `-- name: ChangePassword :execrows
+UPDATE accounts SET password = $2 WHERE id = $1
+`
+
+type ChangePasswordParams struct {
+	ID       int64       `json:"id"`
+	Password pgtype.Text `json:"password"`
+}
+
+func (q *Queries) ChangePassword(ctx context.Context, arg ChangePasswordParams) (int64, error) {
+	result, err := q.db.Exec(ctx, changePassword, arg.ID, arg.Password)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getAccountByEmail = `-- name: GetAccountByEmail :one
 SELECT id, password FROM accounts WHERE email = $1
 `

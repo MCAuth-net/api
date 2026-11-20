@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	ChangePassword(ctx context.Context, arg ChangePasswordParams) (int64, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (pgtype.Timestamptz, error)
 	GetAccountByEmail(ctx context.Context, email pgtype.Text) (GetAccountByEmailRow, error)
 	GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error)

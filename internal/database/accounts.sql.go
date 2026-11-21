@@ -79,19 +79,37 @@ func (q *Queries) ChangePassword(ctx context.Context, arg ChangePasswordParams) 
 	return result.RowsAffected(), nil
 }
 
-const getAccountByEmail = `-- name: GetAccountByEmail :one
-SELECT id, password FROM accounts WHERE email = $1
+const getAccount = `-- name: GetAccount :one
+SELECT id, email, password, name, color FROM accounts WHERE id = $1
 `
 
-type GetAccountByEmailRow struct {
-	ID       int64       `json:"id"`
-	Password pgtype.Text `json:"password"`
+func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
+	row := q.db.QueryRow(ctx, getAccount, id)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.Name,
+		&i.Color,
+	)
+	return i, err
 }
 
-func (q *Queries) GetAccountByEmail(ctx context.Context, email pgtype.Text) (GetAccountByEmailRow, error) {
+const getAccountByEmail = `-- name: GetAccountByEmail :one
+SELECT id, email, password, name, color FROM accounts WHERE email = $1
+`
+
+func (q *Queries) GetAccountByEmail(ctx context.Context, email pgtype.Text) (Account, error) {
 	row := q.db.QueryRow(ctx, getAccountByEmail, email)
-	var i GetAccountByEmailRow
-	err := row.Scan(&i.ID, &i.Password)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.Name,
+		&i.Color,
+	)
 	return i, err
 }
 

@@ -3,14 +3,16 @@ package routes
 import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
+	"MCAuth-api/internal/helpers/email"
 	"context"
+	"fmt"
 	"net/netip"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func CreateSession(c fiber.Ctx, ctx context.Context, queries *database.Queries, id int64) error {
+func CreateSession(c fiber.Ctx, ctx context.Context, queries *database.Queries, id int64, account *database.Account) error {
 	ip, err := netip.ParseAddr(c.IP())
 	if err != nil {
 		return err
@@ -21,11 +23,34 @@ func CreateSession(c fiber.Ctx, ctx context.Context, queries *database.Queries, 
 		return err
 	}
 
+	if account == nil {
+		res, err := queries.GetAccount(ctx, id)
+		if err != nil {
+			return err
+		}
+		account = &res
+	}
+
+	agent := c.UserAgent()
+	if account.Email.Valid {
+		parsed := helpers.ParseUserAgent(agent)
+
+		err = email.SendHTMLTemplate([]string{account.Email.String}, "New login", "new_login", map[string]any{
+			"browser": fmt.Sprintf("%s %s", parsed.Browser, parsed.BrowserVersion),
+			"os":      fmt.Sprintf("%s %s", parsed.OS, parsed.OSVersion),
+			"device":  parsed.Device,
+			"ip":      ip.String(),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	session, err := queries.CreateSession(ctx, database.CreateSessionParams{
 		AccountID: id,
 		Token:     token,
 		Ip:        ip,
-		Agent:     c.UserAgent(),
+		Agent:     agent,
 	})
 	if err != nil {
 		return err
@@ -75,7 +100,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 		return c.SendStatus(401)
 	}
 
-	err = CreateSession(c, ctx, queries, account.ID)
+	err = CreateSession(c, ctx, queries, account.ID, &account)
 	if err != nil {
 		return helpers.HandleError(c, err)
 	}

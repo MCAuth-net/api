@@ -1,11 +1,14 @@
 -- name: GetAccounts :many
 SELECT * FROM accounts ORDER BY id;
 
+-- name: GetAccount :one
+SELECT * FROM accounts WHERE id = $1;
+
 -- name: GetAccountByUUID :one
 SELECT account_id FROM account_uuids WHERE uuid = $1;
 
 -- name: GetAccountByEmail :one
-SELECT id, password FROM accounts WHERE email = $1;
+SELECT * FROM accounts WHERE email = $1;
 
 -- name: GetAccountFromSessionToken :one
 SELECT a.*, s.expires AS expires, u.uuid AS uuid

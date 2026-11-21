@@ -8,7 +8,7 @@ CREATE TABLE oauth (
     id bigserial PRIMARY KEY,
     name varchar UNIQUE,
     secret varchar NOT NULL UNIQUE,
-    redirect_uris varchar[] NOT NULL,
+    redirect_uris varchar[] NOT NULL DEFAULT '{}',
     owner bigint REFERENCES accounts(id) ON DELETE CASCADE NOT NULL
 );
 

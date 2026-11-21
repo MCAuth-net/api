@@ -8,12 +8,11 @@ VALUES (
 RETURNING id;
 
 -- name: CreateOAuthSession :one
-INSERT INTO oauth_sessions (oauth_id, account_id, token, redirect_uris)
+INSERT INTO oauth_sessions (oauth_id, account_id, token)
 VALUES (
     $1,
     $2,
-    $3,
-    '{}'
+    $3
 )
 RETURNING id;
 

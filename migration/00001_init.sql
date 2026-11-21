@@ -2,13 +2,19 @@
 CREATE TABLE accounts (
     id bigserial PRIMARY KEY,
     email varchar UNIQUE,
-    password varchar
+    password varchar,
+    name varchar
 );
 
 CREATE TABLE account_uuids (
     uuid uuid PRIMARY KEY,
-    account_id bigint NOT NULL REFERENCES accounts(id) ON DELETE CASCADE
+    account_id bigint NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    selected boolean NOT NULL DEFAULT FALSE
 );
+
+CREATE UNIQUE INDEX unique_selected_uuid_per_account
+    ON account_uuids (account_id)
+    WHERE selected = TRUE;
 
 CREATE TABLE sessions (
     id bigserial PRIMARY KEY,

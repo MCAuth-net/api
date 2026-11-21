@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/redis/go-redis/v9"
 )
@@ -95,7 +96,7 @@ func ConfirmEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		return helpers.HandleError(c, err)
 	}
 
-	_, err = queries.SetEmail(ctx, database.SetEmailParams{
+	_, err = queries.ChangeEmail(ctx, database.ChangeEmailParams{
 		ID: account.Account.ID,
 		Email: pgtype.Text{
 			String: parts[1],
@@ -164,6 +165,65 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 			String: hash,
 			Valid:  true,
 		},
+	})
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	return c.SendStatus(200)
+}
+
+type ChangeNameRequest struct {
+	NewName string `json:"new_name"`
+}
+
+func ChangeName(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
+	body, err := helpers.ParseBody[ChangeNameRequest](c)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	ctx, cancel := helpers.GetContext()
+	defer cancel()
+
+	_, err = queries.ChangeName(ctx, database.ChangeNameParams{
+		ID: account.Account.ID,
+		Name: pgtype.Text{
+			String: body.NewName,
+			Valid:  true,
+		},
+	})
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	return c.SendStatus(200)
+}
+
+type SetPrimaryUUIDRequest struct {
+	PrimaryUUID string `json:"primary_uuid"`
+}
+
+func SetPrimaryUUID(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
+	body, err := helpers.ParseBody[SetPrimaryUUIDRequest](c)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	u, err := uuid.Parse(body.PrimaryUUID)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	ctx, cancel := helpers.GetContext()
+	defer cancel()
+
+	_, err = queries.SetPrimaryUUID(ctx, database.SetPrimaryUUIDParams{
+		Uuid: pgtype.UUID{
+			Bytes: u,
+			Valid: true,
+		},
+		AccountID: account.Account.ID,
 	})
 	if err != nil {
 		return helpers.HandleError(c, err)

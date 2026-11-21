@@ -1,8 +1,3 @@
--- name: GetAccountFromSessionToken :one
-SELECT a.*, s.expires AS expires FROM accounts a
-JOIN sessions s ON s.account_id = a.id
-WHERE s.token = $1;
-
 -- name: CreateSession :one
 INSERT INTO sessions (account_id, token, ip, agent)
 VALUES (

@@ -48,6 +48,17 @@ func Auth(queries *database.Queries) fiber.Handler {
 			return HandleError(c, err)
 		}
 
+		if !account.Uuid.Valid && len(uuids) > 0 {
+			_, err := queries.SetPrimaryUUID(c.Context(), database.SetPrimaryUUIDParams{
+				Uuid:      uuids[0],
+				AccountID: account.ID,
+			})
+			if err != nil {
+				return HandleError(c, err)
+			}
+			account.Uuid = uuids[0]
+		}
+
 		c.Locals(accountKey, AuthedAccount{Account: account, UUIDs: uuids})
 		return c.Next()
 	}

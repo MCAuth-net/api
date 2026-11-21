@@ -11,6 +11,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const changeEmail = `-- name: ChangeEmail :execrows
+UPDATE accounts SET email = $2 WHERE id = $1
+`
+
+type ChangeEmailParams struct {
+	ID    int64       `json:"id"`
+	Email pgtype.Text `json:"email"`
+}
+
+func (q *Queries) ChangeEmail(ctx context.Context, arg ChangeEmailParams) (int64, error) {
+	result, err := q.db.Exec(ctx, changeEmail, arg.ID, arg.Email)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const changeName = `-- name: ChangeName :execrows
+UPDATE accounts SET name = $2 WHERE id = $1
+`
+
+type ChangeNameParams struct {
+	ID   int64       `json:"id"`
+	Name pgtype.Text `json:"name"`
+}
+
+func (q *Queries) ChangeName(ctx context.Context, arg ChangeNameParams) (int64, error) {
+	result, err := q.db.Exec(ctx, changeName, arg.ID, arg.Name)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const changePassword = `-- name: ChangePassword :execrows
 UPDATE accounts SET password = $2 WHERE id = $1
 `
@@ -55,8 +89,39 @@ func (q *Queries) GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64
 	return account_id, err
 }
 
+const getAccountFromSessionToken = `-- name: GetAccountFromSessionToken :one
+SELECT a.id, a.email, a.password, a.name, s.expires AS expires, u.uuid AS uuid
+FROM accounts a
+    LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
+    JOIN sessions s ON s.account_id = a.id
+WHERE s.token = $1
+`
+
+type GetAccountFromSessionTokenRow struct {
+	ID       int64              `json:"id"`
+	Email    pgtype.Text        `json:"email"`
+	Password pgtype.Text        `json:"password"`
+	Name     pgtype.Text        `json:"name"`
+	Expires  pgtype.Timestamptz `json:"expires"`
+	Uuid     pgtype.UUID        `json:"uuid"`
+}
+
+func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) (GetAccountFromSessionTokenRow, error) {
+	row := q.db.QueryRow(ctx, getAccountFromSessionToken, token)
+	var i GetAccountFromSessionTokenRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.Name,
+		&i.Expires,
+		&i.Uuid,
+	)
+	return i, err
+}
+
 const getAccounts = `-- name: GetAccounts :many
-SELECT id, email, password FROM accounts ORDER BY id
+SELECT id, email, password, name FROM accounts ORDER BY id
 `
 
 func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
@@ -68,7 +133,12 @@ func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
 	var items []Account
 	for rows.Next() {
 		var i Account
-		if err := rows.Scan(&i.ID, &i.Email, &i.Password); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Password,
+			&i.Name,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -103,17 +173,25 @@ func (q *Queries) GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]p
 	return items, nil
 }
 
-const setEmail = `-- name: SetEmail :execrows
-UPDATE accounts SET email = $2 WHERE id = $1
+const setPrimaryUUID = `-- name: SetPrimaryUUID :execrows
+WITH unset_previous AS (
+    UPDATE account_uuids
+        SET selected = FALSE
+        WHERE account_id = $2 AND selected = TRUE
+)
+UPDATE account_uuids
+SET selected = TRUE
+WHERE account_uuids.uuid = $1
+    AND account_uuids.account_id = $2
 `
 
-type SetEmailParams struct {
-	ID    int64       `json:"id"`
-	Email pgtype.Text `json:"email"`
+type SetPrimaryUUIDParams struct {
+	Uuid      pgtype.UUID `json:"uuid"`
+	AccountID int64       `json:"account_id"`
 }
 
-func (q *Queries) SetEmail(ctx context.Context, arg SetEmailParams) (int64, error) {
-	result, err := q.db.Exec(ctx, setEmail, arg.ID, arg.Email)
+func (q *Queries) SetPrimaryUUID(ctx context.Context, arg SetPrimaryUUIDParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setPrimaryUUID, arg.Uuid, arg.AccountID)
 	if err != nil {
 		return 0, err
 	}

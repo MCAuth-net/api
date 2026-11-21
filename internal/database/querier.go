@@ -11,6 +11,8 @@ import (
 )
 
 type Querier interface {
+	ChangeEmail(ctx context.Context, arg ChangeEmailParams) (int64, error)
+	ChangeName(ctx context.Context, arg ChangeNameParams) (int64, error)
 	ChangePassword(ctx context.Context, arg ChangePasswordParams) (int64, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (pgtype.Timestamptz, error)
 	GetAccountByEmail(ctx context.Context, email pgtype.Text) (GetAccountByEmailRow, error)
@@ -20,7 +22,7 @@ type Querier interface {
 	GetUUIDFromLoginToken(ctx context.Context, token string) (pgtype.UUID, error)
 	GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]pgtype.UUID, error)
 	RemoveSession(ctx context.Context, token string) (int64, error)
-	SetEmail(ctx context.Context, arg SetEmailParams) (int64, error)
+	SetPrimaryUUID(ctx context.Context, arg SetPrimaryUUIDParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

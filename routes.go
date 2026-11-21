@@ -10,7 +10,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -52,23 +51,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 		"profile": fiber.Map{
 			helpers.NeedsAuth: true,
 			"me": fiber.Map{
-				fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
-					uuids := make([]string, 0, len(account.UUIDs))
-
-					for _, u := range account.UUIDs {
-						if !u.Valid {
-							continue
-						}
-
-						uuids = append(uuids, uuid.UUID(u.Bytes).String())
-					}
-
-					return c.JSON(fiber.Map{
-						"id":    account.Account.ID,
-						"email": account.Account.Email,
-						"uuids": uuids,
-					})
-				}),
+				fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetMe(c, account, rdb) }),
 			},
 			"change": fiber.Map{
 				helpers.Limiter: limiter.New(limiter.Config{
@@ -98,6 +81,30 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				"password": helpers.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
 					return profile.ChangePassword(c, account, queries)
 				})),
+				"name": fiber.Map{
+					helpers.Limiter: limiter.New(limiter.Config{
+						Max:        5,
+						Expiration: time.Minute,
+						Storage:    store,
+						KeyGenerator: func(c fiber.Ctx) string {
+							return fmt.Sprintf("v1:profile:change:%s:%s", c.Path(), c.IP())
+						},
+					}),
+					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangeName(c, account, queries) }),
+				},
+				"uuid": fiber.Map{
+					helpers.Limiter: limiter.New(limiter.Config{
+						Max:        5,
+						Expiration: time.Minute,
+						Storage:    store,
+						KeyGenerator: func(c fiber.Ctx) string {
+							return fmt.Sprintf("v1:profile:change:%s:%s", c.Path(), c.IP())
+						},
+					}),
+					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return profile.SetPrimaryUUID(c, account, queries)
+					}),
+				},
 			},
 		},
 		"auth": fiber.Map{

@@ -14,11 +14,13 @@ type Account struct {
 	ID       int64       `json:"id"`
 	Email    pgtype.Text `json:"email"`
 	Password pgtype.Text `json:"password"`
+	Name     pgtype.Text `json:"name"`
 }
 
 type AccountUuid struct {
 	Uuid      pgtype.UUID `json:"uuid"`
 	AccountID int64       `json:"account_id"`
+	Selected  bool        `json:"selected"`
 }
 
 type Login struct {

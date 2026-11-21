@@ -59,3 +59,35 @@ func (q *Queries) CreateOAuthSession(ctx context.Context, arg CreateOAuthSession
 	err := row.Scan(&id)
 	return id, err
 }
+
+const getOAuth = `-- name: GetOAuth :one
+SELECT id, name, secret, redirect_uris FROM oauth WHERE id = $1
+`
+
+func (q *Queries) GetOAuth(ctx context.Context, id int64) (Oauth, error) {
+	row := q.db.QueryRow(ctx, getOAuth, id)
+	var i Oauth
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Secret,
+		&i.RedirectUris,
+	)
+	return i, err
+}
+
+const getOAuthFromSecret = `-- name: GetOAuthFromSecret :one
+SELECT id, name, secret, redirect_uris FROM oauth WHERE secret = $1
+`
+
+func (q *Queries) GetOAuthFromSecret(ctx context.Context, secret string) (Oauth, error) {
+	row := q.db.QueryRow(ctx, getOAuthFromSecret, secret)
+	var i Oauth
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Secret,
+		&i.RedirectUris,
+	)
+	return i, err
+}

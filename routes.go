@@ -3,6 +3,7 @@ package main
 import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
+	"MCAuth-api/internal/oauth"
 	"MCAuth-api/internal/routes"
 	"MCAuth-api/internal/routes/profile"
 	"fmt"
@@ -129,6 +130,18 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 
 				return c.SendStatus(200)
 			},
+		},
+		"oauth": fiber.Map{
+			helpers.Limiter: limiter.New(limiter.Config{
+				Max:        60,
+				Expiration: 60 * time.Minute,
+				Storage:    store,
+				KeyGenerator: func(c fiber.Ctx) string {
+					return fmt.Sprintf("v1:oauth:%s", c.IP())
+				},
+			}),
+			helpers.NeedsAuth: true,
+			"init":            helpers.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return oauth.Init(c, queries) })),
 		},
 	}
 }

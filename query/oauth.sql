@@ -21,3 +21,9 @@ VALUES (
     $1,
     $2
 );
+
+-- name: GetOAuth :one
+SELECT * FROM oauth WHERE id = $1;
+
+-- name: GetOAuthFromSecret :one
+SELECT * FROM oauth WHERE secret = $1;

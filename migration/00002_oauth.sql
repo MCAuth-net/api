@@ -1,7 +1,6 @@
 -- +goose up
 CREATE TABLE scopes (
-    id serial PRIMARY KEY,
-    name varchar UNIQUE
+    name varchar PRIMARY KEY
 );
 
 CREATE TABLE oauth (
@@ -22,8 +21,8 @@ CREATE TABLE oauth_sessions (
 
 CREATE TABLE oauth_session_scopes (
     session_id bigint REFERENCES oauth_sessions(id) ON DELETE CASCADE NOT NULL,
-    scope_id int REFERENCES scopes(id) ON DELETE CASCADE NOT NULL,
-    PRIMARY KEY (session_id, scope_id)
+    scope varchar REFERENCES scopes(name) ON DELETE CASCADE NOT NULL,
+    PRIMARY KEY (session_id, scope)
 );
 
 -- +goose down

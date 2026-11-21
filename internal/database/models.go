@@ -52,13 +52,12 @@ type OauthSession struct {
 }
 
 type OauthSessionScope struct {
-	SessionID int64 `json:"session_id"`
-	ScopeID   int32 `json:"scope_id"`
+	SessionID int64  `json:"session_id"`
+	Scope     string `json:"scope"`
 }
 
 type Scope struct {
-	ID   int32       `json:"id"`
-	Name pgtype.Text `json:"name"`
+	Name string `json:"name"`
 }
 
 type Session struct {

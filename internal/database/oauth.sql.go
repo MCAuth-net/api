@@ -12,8 +12,8 @@ import (
 )
 
 type AddOAuthSessionScopesParams struct {
-	SessionID int64 `json:"session_id"`
-	ScopeID   int32 `json:"scope_id"`
+	SessionID int64  `json:"session_id"`
+	Scope     string `json:"scope"`
 }
 
 const createOAuth = `-- name: CreateOAuth :one
@@ -131,25 +131,22 @@ func (q *Queries) GetOAuthSession(ctx context.Context, token string) (OauthSessi
 }
 
 const getOAuthSessionScopes = `-- name: GetOAuthSessionScopes :many
-SELECT s.name
-FROM oauth_session_scopes ss
-         JOIN scopes s ON s.id = ss.scope_id
-WHERE ss.session_id = $1
+SELECT scope FROM oauth_session_scopes WHERE session_id = $1
 `
 
-func (q *Queries) GetOAuthSessionScopes(ctx context.Context, sessionID int64) ([]pgtype.Text, error) {
+func (q *Queries) GetOAuthSessionScopes(ctx context.Context, sessionID int64) ([]string, error) {
 	rows, err := q.db.Query(ctx, getOAuthSessionScopes, sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []pgtype.Text
+	var items []string
 	for rows.Next() {
-		var name pgtype.Text
-		if err := rows.Scan(&name); err != nil {
+		var scope string
+		if err := rows.Scan(&scope); err != nil {
 			return nil, err
 		}
-		items = append(items, name)
+		items = append(items, scope)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -210,22 +207,22 @@ func (q *Queries) GetOAuths(ctx context.Context, owner int64) ([]Oauth, error) {
 }
 
 const getScopes = `-- name: GetScopes :many
-SELECT id, name FROM scopes WHERE name = ANY($1::varchar[])
+SELECT name FROM scopes WHERE name = ANY($1::varchar[])
 `
 
-func (q *Queries) GetScopes(ctx context.Context, names []string) ([]Scope, error) {
-	rows, err := q.db.Query(ctx, getScopes, names)
+func (q *Queries) GetScopes(ctx context.Context, dollar_1 []string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getScopes, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Scope
+	var items []string
 	for rows.Next() {
-		var i Scope
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		var name string
+		if err := rows.Scan(&name); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, name)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

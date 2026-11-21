@@ -30,7 +30,7 @@ func (r *iteratorForAddOAuthSessionScopes) Next() bool {
 func (r iteratorForAddOAuthSessionScopes) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0].SessionID,
-		r.rows[0].ScopeID,
+		r.rows[0].Scope,
 	}, nil
 }
 
@@ -39,5 +39,5 @@ func (r iteratorForAddOAuthSessionScopes) Err() error {
 }
 
 func (q *Queries) AddOAuthSessionScopes(ctx context.Context, arg []AddOAuthSessionScopesParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"oauth_session_scopes"}, []string{"session_id", "scope_id"}, &iteratorForAddOAuthSessionScopes{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"oauth_session_scopes"}, []string{"session_id", "scope"}, &iteratorForAddOAuthSessionScopes{rows: arg})
 }

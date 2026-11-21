@@ -17,11 +17,8 @@ VALUES (
 RETURNING id;
 
 -- name: AddOAuthSessionScopes :copyfrom
-INSERT INTO oauth_session_scopes (session_id, scope_id)
-VALUES (
-    $1,
-    $2
-);
+INSERT INTO oauth_session_scopes (session_id, scope)
+VALUES ($1, $2);
 
 -- name: GetOAuth :one
 SELECT * FROM oauth WHERE id = $1;
@@ -35,17 +32,14 @@ SELECT * FROM oauth WHERE id = $1 AND owner = $2;
 -- name: GetOAuths :many
 SELECT * FROM oauth WHERE owner = $1;
 
--- name: GetScopes :many
-SELECT * FROM scopes WHERE name = ANY(sqlc.arg(names)::varchar[]);
-
 -- name: GetOAuthSession :one
 SELECT * FROM oauth_sessions WHERE token = $1;
 
+-- name: GetScopes :many
+SELECT * FROM scopes WHERE name = ANY($1::varchar[]);
+
 -- name: GetOAuthSessionScopes :many
-SELECT s.name
-FROM oauth_session_scopes ss
-         JOIN scopes s ON s.id = ss.scope_id
-WHERE ss.session_id = $1;
+SELECT scope FROM oauth_session_scopes WHERE session_id = $1;
 
 -- name: UpdateOAuth :execrows
 UPDATE oauth SET name = $2, redirect_uris = $3 WHERE id = $1;

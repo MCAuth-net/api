@@ -56,10 +56,12 @@ func Init(r fiber.Router, pool *pgxpool.Pool, rdb *redis.Client) {
 	srv = server.NewServer(cfg, manager)
 
 	r.Get("/authorize", helpers.Auth(db), helpers.Map(authorize))
-	r.Get("/userinfo", userinfo(rdb))
+
 	r.Post("/token", adaptor.HTTPHandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		_ = srv.HandleTokenRequest(w, req)
 	}))
+
+	r.Get("/userinfo", userinfo(rdb))
 }
 
 func authorize(c fiber.Ctx, account helpers.AuthedAccount) error {
@@ -109,26 +111,22 @@ func (accessGenerate) Token(_ context.Context, _ *oa.GenerateBasic, _ bool) (str
 	return token, "", err
 }
 
-func resolveScopes(ctx context.Context, q *database.Queries, scope string) ([]int32, error) {
+func resolveScopes(ctx context.Context, q *database.Queries, scope string) ([]string, error) {
 	names := slices.Compact(slices.Sorted(slices.Values(strings.Fields(scope))))
 	if len(names) == 0 {
 		return nil, nil
 	}
 
-	rows, err := q.GetScopes(ctx, names)
+	found, err := q.GetScopes(ctx, names)
 	if err != nil {
 		slog.Error("oauth scope lookup failed", "err", err)
 		return nil, oaerrors.ErrServerError
 	}
-	if len(rows) != len(names) {
+	if len(found) != len(names) {
 		return nil, oaerrors.ErrInvalidScope
 	}
 
-	ids := make([]int32, len(rows))
-	for i, row := range rows {
-		ids[i] = row.ID
-	}
-	return ids, nil
+	return names, nil
 }
 
 type tokenStore struct {
@@ -171,7 +169,7 @@ func (s *tokenStore) createAccess(ctx context.Context, info oa.TokenInfo) error 
 	if err != nil {
 		return err
 	}
-	scopeIDs, err := resolveScopes(ctx, s.queries, info.GetScope())
+	scopes, err := resolveScopes(ctx, s.queries, info.GetScope())
 	if err != nil {
 		return err
 	}
@@ -193,10 +191,10 @@ func (s *tokenStore) createAccess(ctx context.Context, info oa.TokenInfo) error 
 		return err
 	}
 
-	if len(scopeIDs) > 0 {
-		params := make([]database.AddOAuthSessionScopesParams, len(scopeIDs))
-		for i, id := range scopeIDs {
-			params[i] = database.AddOAuthSessionScopesParams{SessionID: sessionID, ScopeID: id}
+	if len(scopes) > 0 {
+		params := make([]database.AddOAuthSessionScopesParams, len(scopes))
+		for i, scope := range scopes {
+			params[i] = database.AddOAuthSessionScopesParams{SessionID: sessionID, Scope: scope}
 		}
 		if _, err := q.AddOAuthSessionScopes(ctx, params); err != nil {
 			return err
@@ -239,15 +237,11 @@ func (s *tokenStore) GetByAccess(ctx context.Context, access string) (oa.TokenIn
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(scopes))
-	for _, name := range scopes {
-		names = append(names, name.String)
-	}
 
 	token := models.NewToken()
 	token.SetClientID(strconv.FormatInt(session.OauthID, 10))
 	token.SetUserID(strconv.FormatInt(session.AccountID, 10))
-	token.SetScope(strings.Join(names, " "))
+	token.SetScope(strings.Join(scopes, " "))
 	token.SetAccess(session.Token)
 	token.SetAccessCreateAt(session.Created.Time)
 	token.SetAccessExpiresIn(tokenLifetime)

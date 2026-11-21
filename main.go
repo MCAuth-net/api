@@ -109,7 +109,14 @@ func main() {
 	log.Println("Connected to Redis")
 	log.Println("Starting API")
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ProxyHeader: helpers.Getenv("APP_PROXY_HEADER", fiber.HeaderXForwardedFor),
+		TrustProxy:  helpers.Getenv("APP_TRUST_PROXY", "false") == "true",
+		TrustProxyConfig: fiber.TrustProxyConfig{
+			Proxies:  strings.Split(helpers.Getenv("APP_TRUSTED_PROXIES", "127.0.0.1/32,::/128"), ","),
+			Loopback: true,
+		},
+	})
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: []string{

@@ -6,6 +6,7 @@ import (
 	"MCAuth-api/internal/helpers/email"
 	"crypto/subtle"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -236,6 +237,19 @@ func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Q
 	body, err := helpers.ParseBody[ChangeColorRequest](c)
 	if err != nil {
 		return helpers.HandleError(c, err)
+	}
+
+	if !slices.Contains([]string{
+		"green",
+		"blue",
+		"teal",
+		"violet",
+		"pink",
+		"yellow",
+		"red",
+		"gray",
+	}, body.NewColor) {
+		return c.SendStatus(400)
 	}
 
 	ctx, cancel := helpers.GetContext()

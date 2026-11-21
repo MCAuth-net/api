@@ -24,6 +24,7 @@ type Querier interface {
 	GetAccountByEmail(ctx context.Context, email pgtype.Text) (Account, error)
 	GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error)
 	GetAccountFromSessionToken(ctx context.Context, token string) (GetAccountFromSessionTokenRow, error)
+	GetAccountWithUUID(ctx context.Context, id int64) (GetAccountWithUUIDRow, error)
 	GetAccounts(ctx context.Context) ([]Account, error)
 	GetOAuth(ctx context.Context, id int64) (Oauth, error)
 	GetOAuthFromSecret(ctx context.Context, secret string) (Oauth, error)

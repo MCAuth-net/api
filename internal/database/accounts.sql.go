@@ -157,6 +157,36 @@ func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) 
 	return i, err
 }
 
+const getAccountWithUUID = `-- name: GetAccountWithUUID :one
+SELECT a.id, a.email, a.password, a.name, a.color, u.uuid AS uuid
+FROM accounts a
+         LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
+WHERE a.id = $1
+`
+
+type GetAccountWithUUIDRow struct {
+	ID       int64       `json:"id"`
+	Email    pgtype.Text `json:"email"`
+	Password pgtype.Text `json:"password"`
+	Name     pgtype.Text `json:"name"`
+	Color    string      `json:"color"`
+	Uuid     pgtype.UUID `json:"uuid"`
+}
+
+func (q *Queries) GetAccountWithUUID(ctx context.Context, id int64) (GetAccountWithUUIDRow, error) {
+	row := q.db.QueryRow(ctx, getAccountWithUUID, id)
+	var i GetAccountWithUUIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.Name,
+		&i.Color,
+		&i.Uuid,
+	)
+	return i, err
+}
+
 const getAccounts = `-- name: GetAccounts :many
 SELECT id, email, password, name, color FROM accounts ORDER BY id
 `

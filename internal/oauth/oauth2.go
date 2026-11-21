@@ -56,7 +56,7 @@ func Init(r fiber.Router, pool *pgxpool.Pool, rdb *redis.Client) {
 	srv = server.NewServer(cfg, manager)
 
 	r.Get("/authorize", helpers.Auth(db), helpers.Map(authorize))
-
+	r.Get("/userinfo", userinfo(rdb))
 	r.Post("/token", adaptor.HTTPHandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		_ = srv.HandleTokenRequest(w, req)
 	}))

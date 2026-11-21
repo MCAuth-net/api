@@ -15,6 +15,7 @@ type Account struct {
 	Email    pgtype.Text `json:"email"`
 	Password pgtype.Text `json:"password"`
 	Name     pgtype.Text `json:"name"`
+	Color    string      `json:"color"`
 }
 
 type AccountUuid struct {

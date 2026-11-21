@@ -106,6 +106,19 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 						return profile.SetPrimaryUUID(c, account, queries)
 					}),
 				},
+				"color": fiber.Map{
+					helpers.Limiter: limiter.New(limiter.Config{
+						Max:        5,
+						Expiration: time.Minute,
+						Storage:    store,
+						KeyGenerator: func(c fiber.Ctx) string {
+							return fmt.Sprintf("v1:profile:change:%s:%s", c.Path(), c.IP())
+						},
+					}),
+					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return profile.ChangeColor(c, account, queries)
+					}),
+				},
 			},
 		},
 		"client": fiber.Map{

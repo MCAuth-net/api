@@ -3,7 +3,8 @@ CREATE TABLE accounts (
     id bigserial PRIMARY KEY,
     email varchar UNIQUE,
     password varchar,
-    name varchar
+    name varchar,
+    color varchar NOT NULL DEFAULT 'green'
 );
 
 CREATE TABLE account_uuids (

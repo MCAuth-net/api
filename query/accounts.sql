@@ -26,6 +26,9 @@ UPDATE accounts SET password = $2 WHERE id = $1;
 -- name: ChangeName :execrows
 UPDATE accounts SET name = $2 WHERE id = $1;
 
+-- name: ChangeColor :execrows
+UPDATE accounts SET color = $2 WHERE id = $1;
+
 -- name: SetPrimaryUUID :execrows
 WITH unset_previous AS (
     UPDATE account_uuids

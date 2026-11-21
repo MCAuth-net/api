@@ -231,3 +231,27 @@ func SetPrimaryUUID(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 
 	return c.SendStatus(200)
 }
+
+type ChangeColorRequest struct {
+	NewColor string `json:"new_color"`
+}
+
+func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
+	body, err := helpers.ParseBody[ChangeColorRequest](c)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	ctx, cancel := helpers.GetContext()
+	defer cancel()
+
+	_, err = queries.ChangeColor(ctx, database.ChangeColorParams{
+		ID:    account.Account.ID,
+		Color: body.NewColor,
+	})
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	return c.SendStatus(200)
+}

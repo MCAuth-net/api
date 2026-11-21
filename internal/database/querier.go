@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	AddOAuthSessionScopes(ctx context.Context, arg []AddOAuthSessionScopesParams) (int64, error)
+	ChangeColor(ctx context.Context, arg ChangeColorParams) (int64, error)
 	ChangeEmail(ctx context.Context, arg ChangeEmailParams) (int64, error)
 	ChangeName(ctx context.Context, arg ChangeNameParams) (int64, error)
 	ChangePassword(ctx context.Context, arg ChangePasswordParams) (int64, error)

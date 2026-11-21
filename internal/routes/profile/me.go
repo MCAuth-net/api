@@ -38,6 +38,7 @@ func GetMe(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) error 
 		"uuid":         account.Account.Uuid,
 		"name":         name,
 		"display_name": account.Account.Name,
+		"color":        account.Account.Color,
 		"uuids":        uuids,
 	})
 }

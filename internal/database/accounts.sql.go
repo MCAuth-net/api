@@ -11,6 +11,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const changeColor = `-- name: ChangeColor :execrows
+UPDATE accounts SET color = $2 WHERE id = $1
+`
+
+type ChangeColorParams struct {
+	ID    int64  `json:"id"`
+	Color string `json:"color"`
+}
+
+func (q *Queries) ChangeColor(ctx context.Context, arg ChangeColorParams) (int64, error) {
+	result, err := q.db.Exec(ctx, changeColor, arg.ID, arg.Color)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const changeEmail = `-- name: ChangeEmail :execrows
 UPDATE accounts SET email = $2 WHERE id = $1
 `
@@ -90,7 +107,7 @@ func (q *Queries) GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64
 }
 
 const getAccountFromSessionToken = `-- name: GetAccountFromSessionToken :one
-SELECT a.id, a.email, a.password, a.name, s.expires AS expires, u.uuid AS uuid
+SELECT a.id, a.email, a.password, a.name, a.color, s.expires AS expires, u.uuid AS uuid
 FROM accounts a
     LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
     JOIN sessions s ON s.account_id = a.id
@@ -102,6 +119,7 @@ type GetAccountFromSessionTokenRow struct {
 	Email    pgtype.Text        `json:"email"`
 	Password pgtype.Text        `json:"password"`
 	Name     pgtype.Text        `json:"name"`
+	Color    string             `json:"color"`
 	Expires  pgtype.Timestamptz `json:"expires"`
 	Uuid     pgtype.UUID        `json:"uuid"`
 }
@@ -114,6 +132,7 @@ func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) 
 		&i.Email,
 		&i.Password,
 		&i.Name,
+		&i.Color,
 		&i.Expires,
 		&i.Uuid,
 	)
@@ -121,7 +140,7 @@ func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) 
 }
 
 const getAccounts = `-- name: GetAccounts :many
-SELECT id, email, password, name FROM accounts ORDER BY id
+SELECT id, email, password, name, color FROM accounts ORDER BY id
 `
 
 func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
@@ -138,6 +157,7 @@ func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
 			&i.Email,
 			&i.Password,
 			&i.Name,
+			&i.Color,
 		); err != nil {
 			return nil, err
 		}

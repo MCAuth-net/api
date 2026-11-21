@@ -51,14 +51,10 @@ func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) 
 		return helpers.HandleError(c, err)
 	}
 
-	var oldEmailPhrase string
-	if account.Account.Email.Valid && account.Account.Email.String != "" {
-		oldEmailPhrase = fmt.Sprintf(" from %s", account.Account.Email.String)
-	}
-
 	err = email.SendHTMLTemplate([]string{body.NewEmail}, "Change Email", "change_email_code", map[string]any{
-		"code":             code,
-		"old_email_phrase": oldEmailPhrase,
+		"code":      code,
+		"old_email": account.Account.Email.String,
+		"ip":        c.IP(),
 	})
 	if err != nil {
 		return helpers.HandleError(c, err)

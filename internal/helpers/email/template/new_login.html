@@ -80,20 +80,26 @@
                             New login
                         </h1>
 
+                        {{with .browser}}
                         <p class="body-text" style="font-size:15px; line-height:1.6; color:#4b5563;">
-                            Browser: <strong class="highlight-email" style="color:#374151;">{{.browser}}</strong>
+                            Browser: <strong class="highlight-email" style="color:#374151;">{{.}}</strong>
                         </p>
+                        {{end}}
+
+                        {{with .os}}
+                        <p class="body-text" style="font-size:15px; line-height:1.6; color:#4b5563;">
+                            OS: <strong class="highlight-email" style="color:#374151;">{{.}}</strong>
+                        </p>
+                        {{end}}
+
+                        {{with .device}}
+                        <p class="body-text" style="font-size:15px; line-height:1.6; color:#4b5563;">
+                            Device: <strong class="highlight-email" style="color:#374151;">{{.}}</strong>
+                        </p>
+                        {{end}}
 
                         <p class="body-text" style="font-size:15px; line-height:1.6; color:#4b5563;">
-                            OS: <strong class="highlight-email" style="color:#374151;">{{.os}}</strong>
-                        </p>
-
-                        <p class="body-text" style="font-size:15px; line-height:1.6; color:#4b5563;">
-                            Device: <strong class="highlight-email" style="color:#374151;">{{.device}}</strong>
-                        </p>
-
-                        <p class="body-text" style="font-size:15px; line-height:1.6; color:#4b5563;">
-                            IP: <strong class="highlight-email" style="color:#374151;">{{.ip}}</strong>
+                            IP: <strong class="highlight-email" style="color:#374151;">{{.}}</strong>
                         </p>
                     </td>
                 </tr>

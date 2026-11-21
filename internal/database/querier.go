@@ -11,9 +11,12 @@ import (
 )
 
 type Querier interface {
+	AddOAuthSessionScopes(ctx context.Context, arg []AddOAuthSessionScopesParams) (int64, error)
 	ChangeEmail(ctx context.Context, arg ChangeEmailParams) (int64, error)
 	ChangeName(ctx context.Context, arg ChangeNameParams) (int64, error)
 	ChangePassword(ctx context.Context, arg ChangePasswordParams) (int64, error)
+	CreateOAuth(ctx context.Context, arg CreateOAuthParams) (int64, error)
+	CreateOAuthSession(ctx context.Context, arg CreateOAuthSessionParams) (int64, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (pgtype.Timestamptz, error)
 	GetAccountByEmail(ctx context.Context, email pgtype.Text) (GetAccountByEmailRow, error)
 	GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error)

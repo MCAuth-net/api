@@ -8,7 +8,7 @@ CREATE TABLE accounts (
 
 CREATE TABLE account_uuids (
     uuid uuid PRIMARY KEY,
-    account_id bigint NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    account_id bigint REFERENCES accounts(id) ON DELETE CASCADE NOT NULL,
     selected boolean NOT NULL DEFAULT FALSE
 );
 

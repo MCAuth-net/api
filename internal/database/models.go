@@ -34,6 +34,31 @@ type Login struct {
 	Lang            pgtype.Text `json:"lang"`
 }
 
+type Oauth struct {
+	ID           int64       `json:"id"`
+	Name         pgtype.Text `json:"name"`
+	Secret       string      `json:"secret"`
+	RedirectUris []string    `json:"redirect_uris"`
+}
+
+type OauthSession struct {
+	ID        int64              `json:"id"`
+	OauthID   int64              `json:"oauth_id"`
+	AccountID int64              `json:"account_id"`
+	Token     string             `json:"token"`
+	Created   pgtype.Timestamptz `json:"created"`
+}
+
+type OauthSessionScope struct {
+	SessionID int64 `json:"session_id"`
+	ScopeID   int32 `json:"scope_id"`
+}
+
+type Scope struct {
+	ID   int32       `json:"id"`
+	Name pgtype.Text `json:"name"`
+}
+
 type Session struct {
 	ID        int64              `json:"id"`
 	AccountID int64              `json:"account_id"`

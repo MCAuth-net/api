@@ -286,23 +286,23 @@ func (s *clientStore) GetByID(ctx context.Context, id string) (oa.ClientInfo, er
 
 	return &client{
 		id:           id,
-		secret:       row.Secret,
+		secretHash:   row.Secret,
 		redirectURIs: row.RedirectUris,
 	}, nil
 }
 
 type client struct {
 	id           string
-	secret       string
+	secretHash   string
 	redirectURIs []string
 }
 
 func (c *client) GetID() string     { return c.id }
-func (c *client) GetSecret() string { return c.secret }
+func (c *client) GetSecret() string { return c.secretHash }
 func (c *client) GetDomain() string { return strings.Join(c.redirectURIs, " ") }
 func (c *client) IsPublic() bool    { return false }
 func (c *client) GetUserID() string { return "" }
 
 func (c *client) VerifyPassword(secret string) bool {
-	return subtle.ConstantTimeCompare([]byte(c.secret), []byte(secret)) == 1
+	return subtle.ConstantTimeCompare([]byte(c.secretHash), []byte(helpers.SHA256(secret))) == 1
 }

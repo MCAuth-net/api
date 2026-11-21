@@ -3,6 +3,7 @@ package main
 import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
+	"MCAuth-api/internal/oauth"
 	"context"
 	"database/sql"
 	"fmt"
@@ -120,7 +121,10 @@ func main() {
 
 	store := redisStorage.NewFromConnection(rdb)
 
-	helpers.BuildRoutes(app.Group("/v1"), getRoutes(rdb, queries, store), helpers.Auth(queries))
+	v1 := app.Group("/v1")
+
+	helpers.BuildRoutes(v1, getRoutes(rdb, queries, store), helpers.Auth(queries))
+	oauth.Init(v1.Group("/oauth2"), pool, rdb)
 
 	if err := app.Listen(":" + os.Getenv("PORT")); err != nil {
 		log.Fatal(err)

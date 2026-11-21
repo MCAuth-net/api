@@ -3,8 +3,8 @@ package main
 import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
-	"MCAuth-api/internal/oauth"
 	"MCAuth-api/internal/routes"
+	"MCAuth-api/internal/routes/client"
 	"MCAuth-api/internal/routes/profile"
 	"fmt"
 	"time"
@@ -108,6 +108,36 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				},
 			},
 		},
+		"client": fiber.Map{
+			helpers.Limiter: limiter.New(limiter.Config{
+				Max:        5,
+				Expiration: time.Minute,
+				Storage:    store,
+				KeyGenerator: func(c fiber.Ctx) string {
+					return fmt.Sprintf("v1:client:client:%s:%s", c.Method(), c.IP())
+				},
+			}),
+			helpers.NeedsAuth: true,
+			fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				return client.ReadClient(c, account, queries)
+			}),
+			fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				return client.CreateClient(c, account, queries)
+			}),
+			fiber.MethodPatch: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				return client.UpdateClient(c, account, queries)
+			}),
+			fiber.MethodDelete: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				return client.DeleteClient(c, account, queries)
+			}),
+			fiber.MethodPut: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				return client.UpdateSecret(c, account, queries)
+			}),
+		},
+		"clients": fiber.Map{
+			helpers.NeedsAuth: true,
+			fiber.MethodGet:   helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return client.ListClients(c, account, queries) }),
+		},
 		"auth": fiber.Map{
 			helpers.Limiter: limiter.New(limiter.Config{
 				Max:        5,
@@ -130,18 +160,6 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 
 				return c.SendStatus(200)
 			},
-		},
-		"oauth": fiber.Map{
-			helpers.Limiter: limiter.New(limiter.Config{
-				Max:        60,
-				Expiration: 60 * time.Minute,
-				Storage:    store,
-				KeyGenerator: func(c fiber.Ctx) string {
-					return fmt.Sprintf("v1:oauth:%s", c.IP())
-				},
-			}),
-			helpers.NeedsAuth: true,
-			"init":            helpers.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return oauth.Init(c, queries) })),
 		},
 	}
 }

@@ -17,10 +17,11 @@ type AddOAuthSessionScopesParams struct {
 }
 
 const createOAuth = `-- name: CreateOAuth :one
-INSERT INTO oauth (name, secret)
+INSERT INTO oauth (name, secret, owner)
 VALUES (
     $1,
-    $2
+    $2,
+    $3
 )
 RETURNING id
 `
@@ -28,21 +29,23 @@ RETURNING id
 type CreateOAuthParams struct {
 	Name   pgtype.Text `json:"name"`
 	Secret string      `json:"secret"`
+	Owner  int64       `json:"owner"`
 }
 
 func (q *Queries) CreateOAuth(ctx context.Context, arg CreateOAuthParams) (int64, error) {
-	row := q.db.QueryRow(ctx, createOAuth, arg.Name, arg.Secret)
+	row := q.db.QueryRow(ctx, createOAuth, arg.Name, arg.Secret, arg.Owner)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
 }
 
 const createOAuthSession = `-- name: CreateOAuthSession :one
-INSERT INTO oauth_sessions (oauth_id, account_id, token)
+INSERT INTO oauth_sessions (oauth_id, account_id, token, redirect_uris)
 VALUES (
     $1,
     $2,
-    $3
+    $3,
+    '{}'
 )
 RETURNING id
 `
@@ -60,8 +63,25 @@ func (q *Queries) CreateOAuthSession(ctx context.Context, arg CreateOAuthSession
 	return id, err
 }
 
+const deleteOAuthWithOwner = `-- name: DeleteOAuthWithOwner :execrows
+DELETE FROM oauth WHERE id = $1 AND owner = $2
+`
+
+type DeleteOAuthWithOwnerParams struct {
+	ID    int64 `json:"id"`
+	Owner int64 `json:"owner"`
+}
+
+func (q *Queries) DeleteOAuthWithOwner(ctx context.Context, arg DeleteOAuthWithOwnerParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteOAuthWithOwner, arg.ID, arg.Owner)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getOAuth = `-- name: GetOAuth :one
-SELECT id, name, secret, redirect_uris FROM oauth WHERE id = $1
+SELECT id, name, secret, redirect_uris, owner FROM oauth WHERE id = $1
 `
 
 func (q *Queries) GetOAuth(ctx context.Context, id int64) (Oauth, error) {
@@ -72,12 +92,13 @@ func (q *Queries) GetOAuth(ctx context.Context, id int64) (Oauth, error) {
 		&i.Name,
 		&i.Secret,
 		&i.RedirectUris,
+		&i.Owner,
 	)
 	return i, err
 }
 
 const getOAuthFromSecret = `-- name: GetOAuthFromSecret :one
-SELECT id, name, secret, redirect_uris FROM oauth WHERE secret = $1
+SELECT id, name, secret, redirect_uris, owner FROM oauth WHERE secret = $1
 `
 
 func (q *Queries) GetOAuthFromSecret(ctx context.Context, secret string) (Oauth, error) {
@@ -88,6 +109,175 @@ func (q *Queries) GetOAuthFromSecret(ctx context.Context, secret string) (Oauth,
 		&i.Name,
 		&i.Secret,
 		&i.RedirectUris,
+		&i.Owner,
 	)
 	return i, err
+}
+
+const getOAuthSession = `-- name: GetOAuthSession :one
+SELECT id, oauth_id, account_id, token, created FROM oauth_sessions WHERE token = $1
+`
+
+func (q *Queries) GetOAuthSession(ctx context.Context, token string) (OauthSession, error) {
+	row := q.db.QueryRow(ctx, getOAuthSession, token)
+	var i OauthSession
+	err := row.Scan(
+		&i.ID,
+		&i.OauthID,
+		&i.AccountID,
+		&i.Token,
+		&i.Created,
+	)
+	return i, err
+}
+
+const getOAuthSessionScopes = `-- name: GetOAuthSessionScopes :many
+SELECT s.name
+FROM oauth_session_scopes ss
+         JOIN scopes s ON s.id = ss.scope_id
+WHERE ss.session_id = $1
+`
+
+func (q *Queries) GetOAuthSessionScopes(ctx context.Context, sessionID int64) ([]pgtype.Text, error) {
+	rows, err := q.db.Query(ctx, getOAuthSessionScopes, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.Text
+	for rows.Next() {
+		var name pgtype.Text
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOAuthWithOwner = `-- name: GetOAuthWithOwner :one
+SELECT id, name, secret, redirect_uris, owner FROM oauth WHERE id = $1 AND owner = $2
+`
+
+type GetOAuthWithOwnerParams struct {
+	ID    int64 `json:"id"`
+	Owner int64 `json:"owner"`
+}
+
+func (q *Queries) GetOAuthWithOwner(ctx context.Context, arg GetOAuthWithOwnerParams) (Oauth, error) {
+	row := q.db.QueryRow(ctx, getOAuthWithOwner, arg.ID, arg.Owner)
+	var i Oauth
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Secret,
+		&i.RedirectUris,
+		&i.Owner,
+	)
+	return i, err
+}
+
+const getOAuths = `-- name: GetOAuths :many
+SELECT id, name, secret, redirect_uris, owner FROM oauth WHERE owner = $1
+`
+
+func (q *Queries) GetOAuths(ctx context.Context, owner int64) ([]Oauth, error) {
+	rows, err := q.db.Query(ctx, getOAuths, owner)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Oauth
+	for rows.Next() {
+		var i Oauth
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Secret,
+			&i.RedirectUris,
+			&i.Owner,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getScopes = `-- name: GetScopes :many
+SELECT id, name FROM scopes WHERE name = ANY($1::varchar[])
+`
+
+func (q *Queries) GetScopes(ctx context.Context, names []string) ([]Scope, error) {
+	rows, err := q.db.Query(ctx, getScopes, names)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Scope
+	for rows.Next() {
+		var i Scope
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const removeOAuthSession = `-- name: RemoveOAuthSession :execrows
+DELETE FROM oauth_sessions WHERE token = $1
+`
+
+func (q *Queries) RemoveOAuthSession(ctx context.Context, token string) (int64, error) {
+	result, err := q.db.Exec(ctx, removeOAuthSession, token)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateOAuth = `-- name: UpdateOAuth :execrows
+UPDATE oauth SET name = $2, redirect_uris = $3 WHERE id = $1
+`
+
+type UpdateOAuthParams struct {
+	ID           int64       `json:"id"`
+	Name         pgtype.Text `json:"name"`
+	RedirectUris []string    `json:"redirect_uris"`
+}
+
+func (q *Queries) UpdateOAuth(ctx context.Context, arg UpdateOAuthParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateOAuth, arg.ID, arg.Name, arg.RedirectUris)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateOAuthSecretWithOwner = `-- name: UpdateOAuthSecretWithOwner :execrows
+UPDATE oauth SET secret = $3 WHERE id = $1 AND owner = $2
+`
+
+type UpdateOAuthSecretWithOwnerParams struct {
+	ID     int64  `json:"id"`
+	Owner  int64  `json:"owner"`
+	Secret string `json:"secret"`
+}
+
+func (q *Queries) UpdateOAuthSecretWithOwner(ctx context.Context, arg UpdateOAuthSecretWithOwnerParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateOAuthSecretWithOwner, arg.ID, arg.Owner, arg.Secret)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

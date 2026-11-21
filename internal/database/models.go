@@ -39,6 +39,7 @@ type Oauth struct {
 	Name         pgtype.Text `json:"name"`
 	Secret       string      `json:"secret"`
 	RedirectUris []string    `json:"redirect_uris"`
+	Owner        int64       `json:"owner"`
 }
 
 type OauthSession struct {

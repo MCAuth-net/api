@@ -18,6 +18,12 @@ type Account struct {
 	Color    string      `json:"color"`
 }
 
+type AccountPfp struct {
+	AccountID int64  `json:"account_id"`
+	Pfp       []byte `json:"pfp"`
+	Mime      string `json:"mime"`
+}
+
 type AccountUuid struct {
 	Uuid      pgtype.UUID `json:"uuid"`
 	AccountID int64       `json:"account_id"`

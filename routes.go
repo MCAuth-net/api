@@ -51,9 +51,8 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 		},
 		"profile": fiber.Map{
 			helpers.NeedsAuth: true,
-			"me": fiber.Map{
-				fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetMe(c, account, rdb) }),
-			},
+			"me":              helpers.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetMe(c, account, queries, rdb) })),
+			"pfp":             helpers.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetPfp(c, account, queries) })),
 			"change": fiber.Map{
 				helpers.Limiter: limiter.New(limiter.Config{
 					Max:        3,
@@ -119,6 +118,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 						return profile.ChangeColor(c, account, queries)
 					}),
 				},
+				"pfp": helpers.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangePfp(c, account, queries) })),
 			},
 		},
 		"client": fiber.Map{

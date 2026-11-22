@@ -13,6 +13,12 @@ CREATE TABLE account_uuids (
     selected boolean NOT NULL DEFAULT FALSE
 );
 
+CREATE TABLE account_pfps (
+    account_id bigint REFERENCES accounts(id) ON DELETE CASCADE PRIMARY KEY,
+    pfp bytea CHECK (octet_length(pfp) <= 1048576),
+    mime varchar NOT NULL
+);
+
 CREATE UNIQUE INDEX unique_selected_uuid_per_account
     ON account_uuids (account_id)
     WHERE selected = TRUE;
@@ -39,5 +45,5 @@ CREATE TABLE logins (
 
 -- +goose down
 DROP TABLE IF EXISTS
-    accounts, account_uuids, sessions, logins
+    accounts, account_uuids, account_pfps, sessions, logins
 CASCADE;

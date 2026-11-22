@@ -6,6 +6,8 @@ import (
 	"MCAuth-api/internal/helpers/email"
 	"crypto/subtle"
 	"fmt"
+	"io"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -263,6 +265,47 @@ func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Q
 	_, err = queries.ChangeColor(ctx, database.ChangeColorParams{
 		ID:    account.Account.ID,
 		Color: body.NewColor,
+	})
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	return c.SendStatus(200)
+}
+
+func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
+	file, err := c.FormFile("pfp")
+	if err != nil {
+		return c.SendStatus(400)
+	}
+
+	if file.Size > 1048576 {
+		return c.SendStatus(413)
+	}
+
+	open, err := file.Open()
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+	defer open.Close()
+
+	bytes, err := io.ReadAll(open)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	mime := http.DetectContentType(bytes)
+	if !strings.HasPrefix(mime, "image/") {
+		return c.SendStatus(400)
+	}
+
+	ctx, cancel := helpers.GetContext()
+	defer cancel()
+
+	_, err = queries.ChangePfp(ctx, database.ChangePfpParams{
+		AccountID: account.Account.ID,
+		Pfp:       bytes,
+		Mime:      mime,
 	})
 	if err != nil {
 		return helpers.HandleError(c, err)

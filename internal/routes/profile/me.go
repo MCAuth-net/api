@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/minecraft"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func GetMe(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) error {
+func GetMe(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries, rdb *redis.Client) error {
 	uuids := make(map[string]string, len(account.UUIDs))
 
 	for _, u := range account.UUIDs {
@@ -32,6 +33,14 @@ func GetMe(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) error 
 		return helpers.HandleError(c, err)
 	}
 
+	ctx, cancel := helpers.GetContext()
+	defer cancel()
+
+	pfp, err := queries.HasPfp(ctx, account.Account.ID)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
 	return c.JSON(fiber.Map{
 		"id":           account.Account.ID,
 		"email":        account.Account.Email,
@@ -40,5 +49,19 @@ func GetMe(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) error 
 		"display_name": account.Account.Name,
 		"color":        account.Account.Color,
 		"uuids":        uuids,
+		"pfp":          pfp,
 	})
+}
+
+func GetPfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
+	ctx, cancel := helpers.GetContext()
+	defer cancel()
+
+	pfp, err := queries.GetPfp(ctx, account.Account.ID)
+	if err != nil {
+		return helpers.HandleError(c, err)
+	}
+
+	c.Set("Content-Type", pfp.Mime)
+	return c.Send(pfp.Pfp)
 }

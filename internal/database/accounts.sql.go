@@ -79,6 +79,31 @@ func (q *Queries) ChangePassword(ctx context.Context, arg ChangePasswordParams) 
 	return result.RowsAffected(), nil
 }
 
+const changePfp = `-- name: ChangePfp :execrows
+INSERT INTO account_pfps (account_id, pfp, mime)
+VALUES (
+    $1,
+    $2,
+    $3
+)
+ON CONFLICT (account_id)
+DO UPDATE SET pfp = excluded.pfp
+`
+
+type ChangePfpParams struct {
+	AccountID int64  `json:"account_id"`
+	Pfp       []byte `json:"pfp"`
+	Mime      string `json:"mime"`
+}
+
+func (q *Queries) ChangePfp(ctx context.Context, arg ChangePfpParams) (int64, error) {
+	result, err := q.db.Exec(ctx, changePfp, arg.AccountID, arg.Pfp, arg.Mime)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getAccount = `-- name: GetAccount :one
 SELECT id, email, password, name, color FROM accounts WHERE id = $1
 `
@@ -226,6 +251,22 @@ func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
 	return items, nil
 }
 
+const getPfp = `-- name: GetPfp :one
+SELECT pfp, mime FROM account_pfps WHERE account_id = $1
+`
+
+type GetPfpRow struct {
+	Pfp  []byte `json:"pfp"`
+	Mime string `json:"mime"`
+}
+
+func (q *Queries) GetPfp(ctx context.Context, accountID int64) (GetPfpRow, error) {
+	row := q.db.QueryRow(ctx, getPfp, accountID)
+	var i GetPfpRow
+	err := row.Scan(&i.Pfp, &i.Mime)
+	return i, err
+}
+
 const getUUIDsByAccountID = `-- name: GetUUIDsByAccountID :many
 SELECT uuid FROM account_uuids WHERE account_id = $1
 `
@@ -248,6 +289,21 @@ func (q *Queries) GetUUIDsByAccountID(ctx context.Context, accountID int64) ([]p
 		return nil, err
 	}
 	return items, nil
+}
+
+const hasPfp = `-- name: HasPfp :one
+SELECT EXISTS (
+    SELECT 1
+    FROM account_pfps
+    WHERE account_id = $1
+)
+`
+
+func (q *Queries) HasPfp(ctx context.Context, accountID int64) (bool, error) {
+	row := q.db.QueryRow(ctx, hasPfp, accountID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const setPrimaryUUID = `-- name: SetPrimaryUUID :execrows

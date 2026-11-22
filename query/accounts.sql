@@ -29,6 +29,9 @@ WHERE s.token = $1;
 -- name: GetUUIDsByAccountID :many
 SELECT uuid FROM account_uuids WHERE account_id = $1;
 
+-- name: GetPfp :one
+SELECT pfp, mime FROM account_pfps WHERE account_id = $1;
+
 -- name: ChangeEmail :execrows
 UPDATE accounts SET email = $2 WHERE id = $1;
 
@@ -41,6 +44,16 @@ UPDATE accounts SET name = $2 WHERE id = $1;
 -- name: ChangeColor :execrows
 UPDATE accounts SET color = $2 WHERE id = $1;
 
+-- name: ChangePfp :execrows
+INSERT INTO account_pfps (account_id, pfp, mime)
+VALUES (
+    $1,
+    $2,
+    $3
+)
+ON CONFLICT (account_id)
+DO UPDATE SET pfp = excluded.pfp;
+
 -- name: SetPrimaryUUID :execrows
 WITH unset_previous AS (
     UPDATE account_uuids
@@ -51,3 +64,10 @@ UPDATE account_uuids
 SET selected = TRUE
 WHERE account_uuids.uuid = $1
     AND account_uuids.account_id = $2;
+
+-- name: HasPfp :one
+SELECT EXISTS (
+    SELECT 1
+    FROM account_pfps
+    WHERE account_id = $1
+);

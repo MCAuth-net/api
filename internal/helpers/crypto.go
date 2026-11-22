@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/crypto/argon2"
@@ -86,37 +87,40 @@ func Hash(password string) (string, error) {
 	), nil
 }
 func Compare(password, encodedHash string) (bool, error) {
-	var version, memory, iterations, parallelism uint32
-	var salt, storedHash string
-
-	_, err := fmt.Sscanf(
-		encodedHash,
-		"$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
-		&version,
-		&memory,
-		&iterations,
-		&parallelism,
-		&salt,
-		&storedHash,
-	)
-	if err != nil || version != argon2.Version {
+	parts := strings.Split(encodedHash, "$")
+	if len(parts) != 6 || parts[1] != "argon2id" {
 		return false, fmt.Errorf("invalid argon2 hash")
 	}
 
-	saltBytes, err := base64.RawStdEncoding.DecodeString(salt)
+	var version, memory, iterations, parallelism uint32
+
+	if _, err := fmt.Sscanf(parts[2], "v=%d", &version); err != nil {
+		return false, fmt.Errorf("invalid argon2 version")
+	}
+
+	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d",
+		&memory, &iterations, &parallelism); err != nil {
+		return false, fmt.Errorf("invalid argon2 parameters")
+	}
+
+	if version != argon2.Version {
+		return false, fmt.Errorf("invalid argon2 version")
+	}
+
+	saltBytes, err := base64.RawStdEncoding.DecodeString(parts[4])
 	if err != nil {
 		return false, err
 	}
 
-	hashBytes, err := base64.RawStdEncoding.DecodeString(storedHash)
+	hashBytes, err := base64.RawStdEncoding.DecodeString(parts[5])
 	if err != nil {
 		return false, err
 	}
 
 	if len(hashBytes) == 0 || len(saltBytes) == 0 ||
+		parallelism == 0 || parallelism > 16 ||
 		memory < 8*parallelism || memory > 256*1024 ||
-		iterations == 0 || iterations > 10 ||
-		parallelism == 0 || parallelism > 16 {
+		iterations == 0 || iterations > 10 {
 		return false, fmt.Errorf("invalid argon2 parameters")
 	}
 

@@ -34,7 +34,10 @@ func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) 
 			return c.SendStatus(401)
 		}
 		match, err := helpers.Compare(body.Password, account.Account.Password.String)
-		if err != nil || !match {
+		if err != nil {
+			return helpers.HandleError(c, err)
+		}
+		if !match {
 			return c.SendStatus(401)
 		}
 	}

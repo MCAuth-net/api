@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -97,13 +98,17 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 			return c.SendStatus(401)
 		}
 	case body.Name != "":
-		uuid, err := minecraft.GetUUID(body.Name)
+		id, err := minecraft.GetUUID(body.Name)
+		if err != nil {
+			return helpers.HandleError(c, err)
+		}
+		parsed, err := uuid.Parse(id)
 		if err != nil {
 			return helpers.HandleError(c, err)
 		}
 
 		account, err = queries.GetAccountByUUID(ctx, pgtype.UUID{
-			Bytes: [16]byte([]byte(uuid)),
+			Bytes: parsed,
 			Valid: true,
 		})
 		if err != nil {

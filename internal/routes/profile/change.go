@@ -142,13 +142,15 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 	ctx, cancel := helpers.GetContext()
 	defer cancel()
 
-	old, err := helpers.Compare(body.OldPassword, account.Account.Password.String)
-	if err != nil {
-		return helpers.HandleError(c, err)
-	}
+	if account.Account.Password.Valid {
+		old, err := helpers.Compare(body.OldPassword, account.Account.Password.String)
+		if err != nil {
+			return helpers.HandleError(c, err)
+		}
 
-	if !old {
-		return c.SendStatus(401)
+		if !old {
+			return c.SendStatus(401)
+		}
 	}
 
 	hash, err := helpers.Hash(body.NewPassword)

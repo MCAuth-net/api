@@ -50,7 +50,7 @@ func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) 
 		return helpers.HandleError(c, err)
 	}
 
-	err = rdb.Set(ctx, fmt.Sprintf("new_email:%d", account.Account.ID), fmt.Sprintf("%s:%s", code, body.NewEmail), 5*time.Minute).Err()
+	err = rdb.Set(ctx, fmt.Sprintf("new_email:%d", account.Account.ID), fmt.Sprintf("%s:%s", code, strings.ToLower(body.NewEmail)), 5*time.Minute).Err()
 	if err != nil {
 		return helpers.HandleError(c, err)
 	}

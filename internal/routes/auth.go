@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -89,7 +90,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 	switch {
 	case body.Email != "":
 		account, err = queries.GetAccountByEmail(ctx, pgtype.Text{
-			String: body.Email,
+			String: strings.ToLower(body.Email),
 			Valid:  true,
 		})
 		if err != nil {

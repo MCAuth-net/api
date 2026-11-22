@@ -44,3 +44,22 @@ func GetName(uuid string, rdb *redis.Client) (string, error) {
 
 	return profile.Name, err
 }
+
+func GetUUID(name string) (string, error) {
+	res, err := http.Get(fmt.Sprintf("https://api.mojang.com/users/profiles/minecraft/%s", name))
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New(res.Status)
+	}
+
+	var profile Profile
+	if err := json.NewDecoder(res.Body).Decode(&profile); err != nil {
+		return "", err
+	}
+
+	return profile.Name, err
+}

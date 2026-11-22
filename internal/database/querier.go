@@ -22,7 +22,7 @@ type Querier interface {
 	DeleteOAuthWithOwner(ctx context.Context, arg DeleteOAuthWithOwnerParams) (int64, error)
 	GetAccount(ctx context.Context, id int64) (Account, error)
 	GetAccountByEmail(ctx context.Context, email pgtype.Text) (Account, error)
-	GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error)
+	GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (Account, error)
 	GetAccountFromSessionToken(ctx context.Context, token string) (GetAccountFromSessionTokenRow, error)
 	GetAccountWithUUID(ctx context.Context, id int64) (GetAccountWithUUIDRow, error)
 	GetAccounts(ctx context.Context) ([]Account, error)

@@ -4,6 +4,7 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/helpers/email"
+	"MCAuth-api/internal/minecraft"
 	"context"
 	"fmt"
 	"net/netip"
@@ -71,6 +72,7 @@ func CreateSession(c fiber.Ctx, ctx context.Context, queries *database.Queries, 
 
 type LoginRequest struct {
 	Email    string `json:"email"`
+	Name     string `json:"name"`
 	Password string `json:"password"`
 }
 
@@ -83,12 +85,31 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 	ctx, cancel := helpers.GetContext()
 	defer cancel()
 
-	account, err := queries.GetAccountByEmail(ctx, pgtype.Text{
-		String: body.Email,
-		Valid:  true,
-	})
-	if err != nil {
-		return c.SendStatus(401)
+	var account database.Account
+	switch {
+	case body.Email != "":
+		account, err = queries.GetAccountByEmail(ctx, pgtype.Text{
+			String: body.Email,
+			Valid:  true,
+		})
+		if err != nil {
+			return c.SendStatus(401)
+		}
+	case body.Name != "":
+		uuid, err := minecraft.GetUUID(body.Name)
+		if err != nil {
+			return helpers.HandleError(c, err)
+		}
+
+		account, err = queries.GetAccountByUUID(ctx, pgtype.UUID{
+			Bytes: [16]byte([]byte(uuid)),
+			Valid: true,
+		})
+		if err != nil {
+			return helpers.HandleError(c, err)
+		}
+	default:
+		return c.SendStatus(400)
 	}
 
 	match, err := helpers.Compare(body.Password, account.Password.String)

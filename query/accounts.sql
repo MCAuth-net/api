@@ -7,11 +7,14 @@ SELECT * FROM accounts WHERE id = $1;
 -- name: GetAccountWithUUID :one
 SELECT a.*, u.uuid AS uuid
 FROM accounts a
-         LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
+    LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
 WHERE a.id = $1;
 
 -- name: GetAccountByUUID :one
-SELECT account_id FROM account_uuids WHERE uuid = $1;
+SELECT a.*
+FROM account_uuids u
+    JOIN accounts a ON a.id = u.account_id
+WHERE u.uuid = $1;
 
 -- name: GetAccountByEmail :one
 SELECT * FROM accounts WHERE email = $1;

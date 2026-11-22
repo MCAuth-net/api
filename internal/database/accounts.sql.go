@@ -114,14 +114,23 @@ func (q *Queries) GetAccountByEmail(ctx context.Context, email pgtype.Text) (Acc
 }
 
 const getAccountByUUID = `-- name: GetAccountByUUID :one
-SELECT account_id FROM account_uuids WHERE uuid = $1
+SELECT a.id, a.email, a.password, a.name, a.color
+FROM account_uuids u
+    JOIN accounts a ON a.id = u.account_id
+WHERE u.uuid = $1
 `
 
-func (q *Queries) GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (int64, error) {
+func (q *Queries) GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (Account, error) {
 	row := q.db.QueryRow(ctx, getAccountByUUID, uuid)
-	var account_id int64
-	err := row.Scan(&account_id)
-	return account_id, err
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.Name,
+		&i.Color,
+	)
+	return i, err
 }
 
 const getAccountFromSessionToken = `-- name: GetAccountFromSessionToken :one
@@ -160,7 +169,7 @@ func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) 
 const getAccountWithUUID = `-- name: GetAccountWithUUID :one
 SELECT a.id, a.email, a.password, a.name, a.color, u.uuid AS uuid
 FROM accounts a
-         LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
+    LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
 WHERE a.id = $1
 `
 

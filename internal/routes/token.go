@@ -90,7 +90,7 @@ func TokenCheck(c fiber.Ctx, queries *database.Queries, rdb *redis.Client) error
 			return helpers.HandleError(c, err)
 		}
 
-		err = CreateSession(c, ctx, queries, account, nil)
+		err = CreateSession(c, ctx, queries, account.ID, &account)
 		if err != nil {
 			return helpers.HandleError(c, err)
 		}

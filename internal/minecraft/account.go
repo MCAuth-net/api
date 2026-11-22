@@ -61,5 +61,5 @@ func GetUUID(name string) (string, error) {
 		return "", err
 	}
 
-	return profile.Name, err
+	return profile.ID, err
 }

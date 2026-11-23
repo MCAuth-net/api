@@ -1,7 +1,6 @@
 package oauth
 
 import (
-	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/minecraft"
 	"errors"
 	"net/http"
@@ -9,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -24,7 +24,7 @@ func userinfo(rdb *redis.Client) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		req, err := http.NewRequestWithContext(c.Context(), http.MethodGet, "/", nil)
 		if err != nil {
-			return helpers.HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 		req.Header.Set("Authorization", c.Get(fiber.HeaderAuthorization))
 
@@ -43,7 +43,7 @@ func userinfo(rdb *redis.Client) fiber.Handler {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return unauthorized(c)
 			}
-			return helpers.HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 
 		info := fiber.Map{
@@ -55,7 +55,7 @@ func userinfo(rdb *redis.Client) fiber.Handler {
 			id := uuid.UUID(account.Uuid.Bytes).String()
 			name, err := minecraft.GetName(id, rdb)
 			if err != nil {
-				return helpers.HandleError(c, err)
+				return apiutil.HandleError(c, err)
 			}
 			info["uuid"] = id
 			info["name"] = name

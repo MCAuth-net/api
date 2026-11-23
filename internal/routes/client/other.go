@@ -4,16 +4,17 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 )
 
 func ListClients(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	clients, err := queries.GetOAuths(ctx, account.Account.ID)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	result := make([]fiber.Map, 0, len(clients))
@@ -35,9 +36,9 @@ type UpdateSecretRequest struct {
 }
 
 func UpdateSecret(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[UpdateSecretRequest](c)
+	body, err := apiutil.ParseBody[UpdateSecretRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if body.ID == 0 {
@@ -46,10 +47,10 @@ func UpdateSecret(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 
 	token, err := helpers.GenerateToken()
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	_, err = queries.UpdateOAuthSecretWithOwner(ctx, database.UpdateOAuthSecretWithOwnerParams{
@@ -58,7 +59,7 @@ func UpdateSecret(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		Secret: helpers.SHA256(token),
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.Status(200).SendString(token)

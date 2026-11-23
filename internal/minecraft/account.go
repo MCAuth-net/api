@@ -1,13 +1,13 @@
 package minecraft
 
 import (
-	"MCAuth-api/internal/helpers"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -17,7 +17,7 @@ type Profile struct {
 }
 
 func GetName(uuid string, rdb *redis.Client) (string, error) {
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	cache, err := rdb.Get(ctx, fmt.Sprintf("name:%s", uuid)).Result()

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	oa "github.com/go-oauth2/oauth2/v4"
 	oaerrors "github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/manage"
@@ -67,7 +68,7 @@ func Init(r fiber.Router, pool *pgxpool.Pool, rdb *redis.Client) {
 func authorize(c fiber.Ctx, account helpers.AuthedAccount) error {
 	r, err := adaptor.ConvertRequest(c, false)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	req, err := srv.ValidationAuthorizeRequest(r)

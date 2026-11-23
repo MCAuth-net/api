@@ -5,6 +5,7 @@ import (
 	"MCAuth-api/internal/helpers"
 	"errors"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -15,21 +16,21 @@ type CreateClientRequest struct {
 }
 
 func CreateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[CreateClientRequest](c)
+	body, err := apiutil.ParseBody[CreateClientRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if body.Name == "" {
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	token, err := helpers.GenerateToken()
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	id, err := queries.CreateOAuth(ctx, database.CreateOAuthParams{
@@ -41,7 +42,7 @@ func CreateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		Owner:  account.Account.ID,
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -55,16 +56,16 @@ type ReadClientRequest struct {
 }
 
 func ReadClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[ReadClientRequest](c)
+	body, err := apiutil.ParseBody[ReadClientRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if body.ID == 0 {
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	client, err := queries.GetOAuthWithOwner(ctx, database.GetOAuthWithOwnerParams{
@@ -72,7 +73,7 @@ func ReadClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Qu
 		Owner: account.Account.ID,
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -90,16 +91,16 @@ type UpdateClientRequest struct {
 }
 
 func UpdateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[UpdateClientRequest](c)
+	body, err := apiutil.ParseBody[UpdateClientRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if body.ID == 0 {
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	client, err := queries.GetOAuthWithOwner(ctx, database.GetOAuthWithOwnerParams{
@@ -107,7 +108,7 @@ func UpdateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		Owner: account.Account.ID,
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	name := body.Name
@@ -128,7 +129,7 @@ func UpdateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		RedirectUris: redirectURIs,
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)
@@ -139,16 +140,16 @@ type DeleteClientRequest struct {
 }
 
 func DeleteClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[DeleteClientRequest](c)
+	body, err := apiutil.ParseBody[DeleteClientRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if body.ID == 0 {
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	_, err = queries.DeleteOAuthWithOwner(ctx, database.DeleteOAuthWithOwnerParams{
@@ -159,7 +160,7 @@ func DeleteClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		if errors.Is(err, pgx.ErrNoRows) {
 			return c.SendStatus(404)
 		}
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)

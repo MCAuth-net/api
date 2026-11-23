@@ -3,7 +3,6 @@ package profile
 import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
-	"MCAuth-api/internal/helpers/email"
 	"crypto/subtle"
 	"fmt"
 	"io"
@@ -14,6 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -26,9 +26,9 @@ type ChangeEmailRequest struct {
 }
 
 func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) error {
-	body, err := helpers.ParseBody[ChangeEmailRequest](c)
+	body, err := apiutil.ParseBody[ChangeEmailRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if account.Account.Password.Valid {
@@ -37,33 +37,33 @@ func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) 
 		}
 		match, err := helpers.Compare(body.Password, account.Account.Password.String)
 		if err != nil {
-			return helpers.HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 		if !match {
 			return c.SendStatus(401)
 		}
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	code, err := helpers.GenerateOTP()
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	err = rdb.Set(ctx, fmt.Sprintf("new_email:%d", account.Account.ID), fmt.Sprintf("%s:%s", code, strings.ToLower(body.NewEmail)), 5*time.Minute).Err()
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
-	err = email.SendHTMLTemplate([]string{body.NewEmail}, "Change Email", "change_email_code", map[string]any{
+	err = apiutil.SendEmail([]string{body.NewEmail}, "Change Email", "change_email_code", map[string]any{
 		"code":      code,
 		"old_email": account.Account.Email.String,
 		"ip":        c.IP(),
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)
@@ -74,18 +74,18 @@ type ConfirmEmailRequest struct {
 }
 
 func ConfirmEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries, rdb *redis.Client) error {
-	body, err := helpers.ParseBody[ConfirmEmailRequest](c)
+	body, err := apiutil.ParseBody[ConfirmEmailRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	key := fmt.Sprintf("new_email:%d", account.Account.ID)
 	raw, err := rdb.Get(ctx, key).Result()
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	parts := strings.SplitN(raw, ":", 2)
@@ -95,7 +95,7 @@ func ConfirmEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 
 	err = rdb.Del(ctx, key).Err()
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	_, err = queries.ChangeEmail(ctx, database.ChangeEmailParams{
@@ -107,7 +107,7 @@ func ConfirmEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 	})
 
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)
@@ -119,9 +119,9 @@ type ChangePasswordRequest struct {
 }
 
 func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[ChangePasswordRequest](c)
+	body, err := apiutil.ParseBody[ChangePasswordRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	var lower, upper, digit, special bool
@@ -144,13 +144,13 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	if account.Account.Password.Valid {
 		old, err := helpers.Compare(body.OldPassword, account.Account.Password.String)
 		if err != nil {
-			return helpers.HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 
 		if !old {
@@ -160,7 +160,7 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 
 	hash, err := helpers.Hash(body.NewPassword)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	_, err = queries.ChangePassword(ctx, database.ChangePasswordParams{
@@ -171,7 +171,7 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 		},
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)
@@ -182,12 +182,12 @@ type ChangeNameRequest struct {
 }
 
 func ChangeName(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[ChangeNameRequest](c)
+	body, err := apiutil.ParseBody[ChangeNameRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	_, err = queries.ChangeName(ctx, database.ChangeNameParams{
@@ -198,7 +198,7 @@ func ChangeName(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Qu
 		},
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)
@@ -209,17 +209,17 @@ type SetPrimaryUUIDRequest struct {
 }
 
 func SetPrimaryUUID(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[SetPrimaryUUIDRequest](c)
+	body, err := apiutil.ParseBody[SetPrimaryUUIDRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	u, err := uuid.Parse(body.PrimaryUUID)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	_, err = queries.SetPrimaryUUID(ctx, database.SetPrimaryUUIDParams{
@@ -230,7 +230,7 @@ func SetPrimaryUUID(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 		AccountID: account.Account.ID,
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)
@@ -241,9 +241,9 @@ type ChangeColorRequest struct {
 }
 
 func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
-	body, err := helpers.ParseBody[ChangeColorRequest](c)
+	body, err := apiutil.ParseBody[ChangeColorRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if !slices.Contains([]string{
@@ -259,7 +259,7 @@ func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Q
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	_, err = queries.ChangeColor(ctx, database.ChangeColorParams{
@@ -267,7 +267,7 @@ func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Q
 		Color: body.NewColor,
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)
@@ -285,13 +285,13 @@ func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Que
 
 	open, err := file.Open()
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 	defer open.Close()
 
 	bytes, err := io.ReadAll(open)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	mime := http.DetectContentType(bytes)
@@ -299,7 +299,7 @@ func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Que
 		return c.SendStatus(400)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	_, err = queries.ChangePfp(ctx, database.ChangePfpParams{
@@ -308,7 +308,7 @@ func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Que
 		Mime:      mime,
 	})
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)

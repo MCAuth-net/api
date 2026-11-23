@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/redis/go-redis/v9"
@@ -16,7 +17,7 @@ import (
 
 func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage) fiber.Map {
 	return fiber.Map{
-		helpers.Limiter: limiter.New(limiter.Config{
+		apiutil.Limiter: limiter.New(limiter.Config{
 			Max:        60,
 			Expiration: time.Minute,
 			Storage:    store,
@@ -24,10 +25,10 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				return fmt.Sprintf("v1:%s", c.IP())
 			},
 		}),
-		helpers.NeedsAuth: false,
+		apiutil.NeedsAuth: false,
 
 		"token": fiber.Map{
-			helpers.Limiter: limiter.New(limiter.Config{
+			apiutil.Limiter: limiter.New(limiter.Config{
 				Max:        5,
 				Expiration: 5 * time.Minute,
 				Storage:    store,
@@ -38,7 +39,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 			fiber.MethodGet: func(c fiber.Ctx) error { return routes.Token(c, rdb) },
 
 			"check": fiber.Map{
-				helpers.Limiter: limiter.New(limiter.Config{
+				apiutil.Limiter: limiter.New(limiter.Config{
 					Max:        3,
 					Expiration: time.Second,
 					Storage:    store,
@@ -50,11 +51,11 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 			},
 		},
 		"profile": fiber.Map{
-			helpers.NeedsAuth: true,
-			"me":              helpers.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetMe(c, account, queries, rdb) })),
-			"pfp":             helpers.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetPfp(c, account, queries) })),
+			apiutil.NeedsAuth: true,
+			"me":              apiutil.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetMe(c, account, queries, rdb) })),
+			"pfp":             apiutil.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetPfp(c, account, queries) })),
 			"change": fiber.Map{
-				helpers.Limiter: limiter.New(limiter.Config{
+				apiutil.Limiter: limiter.New(limiter.Config{
 					Max:        3,
 					Expiration: time.Hour,
 					Storage:    store,
@@ -65,7 +66,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				"email": fiber.Map{
 					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangeEmail(c, account, rdb) }),
 					"confirm": fiber.Map{
-						helpers.Limiter: limiter.New(limiter.Config{
+						apiutil.Limiter: limiter.New(limiter.Config{
 							Max:        10,
 							Expiration: time.Minute,
 							Storage:    store,
@@ -78,11 +79,11 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 						}),
 					},
 				},
-				"password": helpers.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				"password": apiutil.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
 					return profile.ChangePassword(c, account, queries)
 				})),
 				"name": fiber.Map{
-					helpers.Limiter: limiter.New(limiter.Config{
+					apiutil.Limiter: limiter.New(limiter.Config{
 						Max:        5,
 						Expiration: time.Minute,
 						Storage:    store,
@@ -93,7 +94,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangeName(c, account, queries) }),
 				},
 				"uuid": fiber.Map{
-					helpers.Limiter: limiter.New(limiter.Config{
+					apiutil.Limiter: limiter.New(limiter.Config{
 						Max:        5,
 						Expiration: time.Minute,
 						Storage:    store,
@@ -106,7 +107,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 					}),
 				},
 				"color": fiber.Map{
-					helpers.Limiter: limiter.New(limiter.Config{
+					apiutil.Limiter: limiter.New(limiter.Config{
 						Max:        5,
 						Expiration: time.Minute,
 						Storage:    store,
@@ -118,11 +119,11 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 						return profile.ChangeColor(c, account, queries)
 					}),
 				},
-				"pfp": helpers.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangePfp(c, account, queries) })),
+				"pfp": apiutil.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangePfp(c, account, queries) })),
 			},
 		},
 		"client": fiber.Map{
-			helpers.Limiter: limiter.New(limiter.Config{
+			apiutil.Limiter: limiter.New(limiter.Config{
 				Max:        5,
 				Expiration: time.Minute,
 				Storage:    store,
@@ -130,7 +131,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 					return fmt.Sprintf("v1:client:client:%s:%s", c.Method(), c.IP())
 				},
 			}),
-			helpers.NeedsAuth: true,
+			apiutil.NeedsAuth: true,
 			fiber.MethodGet: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
 				return client.ReadClient(c, account, queries)
 			}),
@@ -148,11 +149,11 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 			}),
 		},
 		"clients": fiber.Map{
-			helpers.NeedsAuth: true,
+			apiutil.NeedsAuth: true,
 			fiber.MethodGet:   helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return client.ListClients(c, account, queries) }),
 		},
 		"auth": fiber.Map{
-			helpers.Limiter: limiter.New(limiter.Config{
+			apiutil.Limiter: limiter.New(limiter.Config{
 				Max:        5,
 				Expiration: 5 * time.Minute,
 				Storage:    store,
@@ -162,12 +163,12 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 			}),
 			fiber.MethodPost: func(c fiber.Ctx) error { return routes.Login(c, queries) },
 			fiber.MethodDelete: func(c fiber.Ctx) error {
-				ctx, cancel := helpers.GetContext()
+				ctx, cancel := apiutil.GetContext()
 				defer cancel()
 
 				_, err := queries.RemoveSession(ctx, c.Cookies("session"))
 				if err != nil {
-					return helpers.HandleError(c, err)
+					return apiutil.HandleError(c, err)
 				}
 				c.ClearCookie("session")
 

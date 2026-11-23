@@ -4,23 +4,24 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/oauth"
-	"context"
-	"database/sql"
-	"fmt"
+	"embed"
 	"log"
 	"log/slog"
 	"os"
-	"strconv"
 	"strings"
-	"time"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	redisStorage "github.com/gofiber/storage/redis/v3"
-	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/redis/go-redis/v9"
 )
+
+//go:embed all:migration
+var migrations embed.FS
+
+//go:embed all:template
+var templates embed.FS
 
 func main() {
 	var logLevel slog.LevelVar
@@ -44,79 +45,31 @@ func main() {
 		Level: &logLevel,
 	})))
 
-	if os.Getenv("PORT") == "" {
-		os.Setenv("PORT", "8080")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	databaseURL := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		helpers.Getenv("POSTGRES_HOST", "localhost"),
-		helpers.Getenv("POSTGRES_PORT", "5432"),
-		os.Getenv("POSTGRES_DATABASE"),
-	)
-
-	pool, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		log.Fatal("Failed to connect to PostgreSQL: ", err)
-	}
-	defer pool.Close()
-
-	if err := pool.Ping(ctx); err != nil {
-		log.Fatal("PostgreSQL ping failed: ", err)
-	}
-
-	log.Println("Connected to PostgreSQL")
-
-	sqlDB, err := sql.Open("pgx", databaseURL)
-	if err != nil {
-		log.Fatal("Failed to open migration database: ", err)
-	}
-	defer sqlDB.Close()
-
-	if err := sqlDB.PingContext(ctx); err != nil {
-		log.Fatal("Migration database ping failed: ", err)
-	}
-
-	if err := Migrate(sqlDB); err != nil {
-		log.Fatal("Failed to run migrations: ", err)
-	}
-
-	log.Println("Database migrations completed")
-
-	queries := database.New(pool)
-
-	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
-	if err != nil {
-		redisDB = 0
-	}
-
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     helpers.Getenv("REDIS_ADDR", "localhost:6379"),
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       redisDB,
-	})
-	defer rdb.Close()
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Fatal("Redis ping failed: ", err)
-	}
-
-	log.Println("Connected to Redis")
 	log.Println("Starting API")
 
-	app := fiber.New(fiber.Config{
-		ProxyHeader: helpers.Getenv("APP_PROXY_HEADER", fiber.HeaderXForwardedFor),
-		TrustProxy:  helpers.Getenv("APP_TRUST_PROXY", "false") == "true",
-		TrustProxyConfig: fiber.TrustProxyConfig{
-			Proxies:  strings.Split(helpers.Getenv("APP_TRUSTED_PROXIES", "127.0.0.1/32,::/128"), ","),
-			Loopback: true,
+	api, err := apiutil.Init(apiutil.Config{
+		GooseFS:  migrations,
+		GooseDir: "migration",
+		FiberConfig: fiber.Config{
+			ProxyHeader: apiutil.GetEnv("APP_PROXY_HEADER", fiber.HeaderXForwardedFor),
+			TrustProxy:  apiutil.GetEnv("APP_TRUST_PROXY", "false") == "true",
+			TrustProxyConfig: fiber.TrustProxyConfig{
+				Proxies:  strings.Split(apiutil.GetEnv("APP_TRUSTED_PROXIES", "127.0.0.1/32,::/128"), ","),
+				Loopback: true,
+			},
+		},
+		EmailConfig: apiutil.EmailConfig{
+			FS: templates,
 		},
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	app := api.App
+	pool := api.Pool
+	queries := database.New(pool)
+	rdb := api.RDB
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
@@ -130,10 +83,10 @@ func main() {
 
 	v1 := app.Group("/v1")
 
-	helpers.BuildRoutes(v1, getRoutes(rdb, queries, store), helpers.Auth(queries))
+	apiutil.BuildRoutes(v1, getRoutes(rdb, queries, store), helpers.Auth(queries))
 	oauth.Init(v1.Group("/oauth2"), pool, rdb)
 
-	if err := app.Listen(":" + os.Getenv("PORT")); err != nil {
+	if err := api.EasyListen(); err != nil {
 		log.Fatal(err)
 	}
 }

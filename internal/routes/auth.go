@@ -3,13 +3,13 @@ package routes
 import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
-	"MCAuth-api/internal/helpers/email"
 	"MCAuth-api/internal/minecraft"
 	"context"
 	"fmt"
 	"net/netip"
 	"strings"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -38,7 +38,7 @@ func CreateSession(c fiber.Ctx, ctx context.Context, queries *database.Queries, 
 	if account.Email.Valid {
 		parsed := helpers.ParseUserAgent(agent)
 
-		err = email.SendHTMLTemplate([]string{account.Email.String}, "New login", "new_login", map[string]any{
+		err = apiutil.SendEmail([]string{account.Email.String}, "New login", "new_login", map[string]any{
 			"browser": fmt.Sprintf("%s %s", parsed.Browser, parsed.BrowserVersion),
 			"os":      fmt.Sprintf("%s %s", parsed.OS, parsed.OSVersion),
 			"device":  parsed.Device,
@@ -79,12 +79,12 @@ type LoginRequest struct {
 }
 
 func Login(c fiber.Ctx, queries *database.Queries) error {
-	body, err := helpers.ParseBody[LoginRequest](c)
+	body, err := apiutil.ParseBody[LoginRequest](c)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
-	ctx, cancel := helpers.GetContext()
+	ctx, cancel := apiutil.GetContext()
 	defer cancel()
 
 	var account database.Account
@@ -100,11 +100,11 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 	case body.Name != "":
 		id, err := minecraft.GetUUID(body.Name)
 		if err != nil {
-			return helpers.HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 		parsed, err := uuid.Parse(id)
 		if err != nil {
-			return helpers.HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 
 		account, err = queries.GetAccountByUUID(ctx, pgtype.UUID{
@@ -112,7 +112,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 			Valid: true,
 		})
 		if err != nil {
-			return helpers.HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 	default:
 		return c.SendStatus(400)
@@ -120,7 +120,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 
 	match, err := helpers.Compare(body.Password, account.Password.String)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	if !match {
@@ -129,7 +129,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 
 	err = CreateSession(c, ctx, queries, account.ID, &account)
 	if err != nil {
-		return helpers.HandleError(c, err)
+		return apiutil.HandleError(c, err)
 	}
 
 	return c.SendStatus(200)

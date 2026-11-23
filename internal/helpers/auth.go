@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -32,20 +33,20 @@ func Auth(queries *database.Queries) fiber.Handler {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return c.SendStatus(401)
 			}
-			return HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 
 		if time.Now().After(account.Expires.Time) {
 			_, err = queries.RemoveSession(c.Context(), token)
 			if err != nil {
-				return HandleError(c, err)
+				return apiutil.HandleError(c, err)
 			}
 			return c.SendStatus(401)
 		}
 
 		uuids, err := queries.GetUUIDsByAccountID(c.Context(), account.ID)
 		if err != nil {
-			return HandleError(c, err)
+			return apiutil.HandleError(c, err)
 		}
 
 		if !account.Uuid.Valid && len(uuids) > 0 {
@@ -54,7 +55,7 @@ func Auth(queries *database.Queries) fiber.Handler {
 				AccountID: account.ID,
 			})
 			if err != nil {
-				return HandleError(c, err)
+				return apiutil.HandleError(c, err)
 			}
 			account.Uuid = uuids[0]
 		}

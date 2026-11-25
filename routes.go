@@ -30,7 +30,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 		"token": fiber.Map{
 			apiutil.Limiter: limiter.New(limiter.Config{
 				Max:        5,
-				Expiration: 5 * time.Minute,
+				Expiration: time.Minute,
 				Storage:    store,
 				KeyGenerator: func(c fiber.Ctx) string {
 					return fmt.Sprintf("v1:token:%s", c.IP())

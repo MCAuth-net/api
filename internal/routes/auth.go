@@ -95,7 +95,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 			Valid:  true,
 		})
 		if err != nil {
-			return c.SendStatus(401)
+			return helpers.SendError(c, 401, "Login failed")
 		}
 	case body.Name != "":
 		id, err := minecraft.GetUUID(body.Name)
@@ -115,7 +115,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 			return apiutil.HandleError(c, err)
 		}
 	default:
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	match, err := helpers.Compare(body.Password, account.Password.String)
@@ -124,7 +124,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 	}
 
 	if !match {
-		return c.SendStatus(401)
+		return helpers.SendError(c, 401, "Login failed")
 	}
 
 	err = CreateSession(c, ctx, queries, account.ID, &account)
@@ -132,5 +132,5 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }

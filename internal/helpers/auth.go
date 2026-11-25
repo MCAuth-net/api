@@ -25,13 +25,13 @@ func Auth(queries *database.Queries) fiber.Handler {
 			token = c.Cookies("session")
 		}
 		if token == "" {
-			return c.SendStatus(401)
+			return SendError(c, 401, "No session token")
 		}
 
 		account, err := queries.GetAccountFromSessionToken(c.Context(), token)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return c.SendStatus(401)
+				return SendError(c, 404, "Account not found")
 			}
 			return apiutil.HandleError(c, err)
 		}
@@ -41,7 +41,7 @@ func Auth(queries *database.Queries) fiber.Handler {
 			if err != nil {
 				return apiutil.HandleError(c, err)
 			}
-			return c.SendStatus(401)
+			return SendError(c, 403, "Session token expired")
 		}
 
 		uuids, err := queries.GetUUIDsByAccountID(c.Context(), account.ID)

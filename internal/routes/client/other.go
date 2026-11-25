@@ -42,7 +42,7 @@ func UpdateSecret(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 	}
 
 	if body.ID == 0 {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	token, err := helpers.GenerateToken()

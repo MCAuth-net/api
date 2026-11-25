@@ -33,14 +33,14 @@ func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) 
 
 	if account.Account.Password.Valid {
 		if body.Password == "" {
-			return c.SendStatus(401)
+			return helpers.WrongBody(c)
 		}
 		match, err := helpers.Compare(body.Password, account.Account.Password.String)
 		if err != nil {
 			return apiutil.HandleError(c, err)
 		}
 		if !match {
-			return c.SendStatus(401)
+			return helpers.SendError(c, 401, "Wrong password")
 		}
 	}
 
@@ -66,7 +66,7 @@ func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) 
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }
 
 type ConfirmEmailRequest struct {
@@ -90,7 +90,7 @@ func ConfirmEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 
 	parts := strings.SplitN(raw, ":", 2)
 	if len(parts) != 2 || subtle.ConstantTimeCompare([]byte(parts[0]), []byte(body.Code)) != 1 {
-		return c.SendStatus(401)
+		return helpers.SendError(c, 401, "Wrong code")
 	}
 
 	err = rdb.Del(ctx, key).Err()
@@ -110,7 +110,7 @@ func ConfirmEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }
 
 type ChangePasswordRequest struct {
@@ -141,7 +141,7 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 
 	length := utf8.RuneCountInString(body.NewPassword)
 	if !lower || !upper || !digit || !special || length < 8 || length > 64 {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -154,7 +154,7 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 		}
 
 		if !old {
-			return c.SendStatus(401)
+			return helpers.SendError(c, 401, "Wrong password")
 		}
 	}
 
@@ -174,7 +174,7 @@ func ChangePassword(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }
 
 type ChangeNameRequest struct {
@@ -201,7 +201,7 @@ func ChangeName(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Qu
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }
 
 type SetPrimaryUUIDRequest struct {
@@ -233,7 +233,7 @@ func SetPrimaryUUID(c fiber.Ctx, account helpers.AuthedAccount, queries *databas
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }
 
 type ChangeColorRequest struct {
@@ -256,7 +256,7 @@ func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Q
 		"red",
 		"gray",
 	}, body.NewColor) {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -270,17 +270,17 @@ func ChangeColor(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Q
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }
 
 func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
 	file, err := c.FormFile("pfp")
 	if err != nil {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	if file.Size > 1048576 {
-		return c.SendStatus(413)
+		return helpers.SendError(c, 413, "File too large")
 	}
 
 	open, err := file.Open()
@@ -296,7 +296,7 @@ func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Que
 
 	mime := http.DetectContentType(bytes)
 	if !strings.HasPrefix(mime, "image/") {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -311,5 +311,5 @@ func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Que
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }

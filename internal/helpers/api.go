@@ -16,6 +16,24 @@ func SendSuccess(c fiber.Ctx, data any) error {
 	return c.Status(200).Send(dat)
 }
 
+func SendNoError(c fiber.Ctx) error {
+	return c.Status(200).JSON(fiber.Map{
+		"success": true,
+		"error":   nil,
+	})
+}
+
+func SendError(c fiber.Ctx, status int, err string) error {
+	return c.Status(status).JSON(fiber.Map{
+		"success": false,
+		"error":   err,
+	})
+}
+
+func WrongBody(c fiber.Ctx) error {
+	return SendError(c, 400, "Wrong body")
+}
+
 type UserAgentInfo struct {
 	Browser        string `json:"browser"`
 	BrowserVersion string `json:"browser_version"`

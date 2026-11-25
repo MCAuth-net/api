@@ -22,7 +22,7 @@ func CreateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 	}
 
 	if body.Name == "" {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -62,7 +62,7 @@ func ReadClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Qu
 	}
 
 	if body.ID == 0 {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -97,7 +97,7 @@ func UpdateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 	}
 
 	if body.ID == 0 {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -132,7 +132,7 @@ func UpdateClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }
 
 type DeleteClientRequest struct {
@@ -146,7 +146,7 @@ func DeleteClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 	}
 
 	if body.ID == 0 {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -158,10 +158,10 @@ func DeleteClient(c fiber.Ctx, account helpers.AuthedAccount, queries *database.
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return c.SendStatus(404)
+			return helpers.WrongBody(c)
 		}
 		return apiutil.HandleError(c, err)
 	}
 
-	return c.SendStatus(200)
+	return helpers.SendNoError(c)
 }

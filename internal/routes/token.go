@@ -53,7 +53,7 @@ type TokenCheckResponse struct {
 func TokenCheck(c fiber.Ctx, queries *database.Queries, rdb *redis.Client) error {
 	body, err := apiutil.ParseBody[TokenCheckRequest](c)
 	if err != nil {
-		return c.SendStatus(400)
+		return helpers.WrongBody(c)
 	}
 
 	ctx, cancel := apiutil.GetContext()
@@ -61,7 +61,7 @@ func TokenCheck(c fiber.Ctx, queries *database.Queries, rdb *redis.Client) error
 	res, err := rdb.Get(ctx, fmt.Sprintf("token:%s", body.Token)).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return c.SendStatus(404)
+			return helpers.SendError(c, 404, "Token not found")
 		}
 		return apiutil.HandleError(c, err)
 	}
@@ -101,5 +101,5 @@ func TokenCheck(c fiber.Ctx, queries *database.Queries, rdb *redis.Client) error
 		})
 	}
 
-	return c.SendStatus(404)
+	return helpers.SendError(c, 404, "Token not found")
 }

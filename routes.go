@@ -172,7 +172,7 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 				}
 				c.ClearCookie("session")
 
-				return c.SendStatus(200)
+				return helpers.SendNoError(c)
 			},
 		},
 	}

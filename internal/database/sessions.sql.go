@@ -12,13 +12,31 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const activateSession = `-- name: ActivateSession :execrows
+UPDATE sessions SET activated = $2 WHERE token = $1
+`
+
+type ActivateSessionParams struct {
+	Token     string `json:"token"`
+	Activated bool   `json:"activated"`
+}
+
+func (q *Queries) ActivateSession(ctx context.Context, arg ActivateSessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, activateSession, arg.Token, arg.Activated)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const createSession = `-- name: CreateSession :one
-INSERT INTO sessions (account_id, token, ip, agent)
+INSERT INTO sessions (account_id, token, ip, agent, activated)
 VALUES (
    $1,
    $2,
    $3,
-   $4
+   $4,
+    $5
 )
 RETURNING expires
 `
@@ -28,6 +46,7 @@ type CreateSessionParams struct {
 	Token     string     `json:"token"`
 	Ip        netip.Addr `json:"ip"`
 	Agent     string     `json:"agent"`
+	Activated bool       `json:"activated"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (pgtype.Timestamptz, error) {
@@ -36,6 +55,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (p
 		arg.Token,
 		arg.Ip,
 		arg.Agent,
+		arg.Activated,
 	)
 	var expires pgtype.Timestamptz
 	err := row.Scan(&expires)

@@ -20,7 +20,7 @@ WHERE u.uuid = $1;
 SELECT * FROM accounts WHERE email = $1;
 
 -- name: GetAccountFromSessionToken :one
-SELECT a.*, s.expires AS expires, u.uuid AS uuid
+SELECT a.*, s.expires AS expires, s.activated, s.id AS session_id, u.uuid AS uuid
 FROM accounts a
     LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
     JOIN sessions s ON s.account_id = a.id
@@ -54,6 +54,9 @@ VALUES (
 ON CONFLICT (account_id)
 DO UPDATE SET pfp = excluded.pfp;
 
+-- name: Change2FAMethods :execrows
+UPDATE accounts SET tfa_methods = $2 WHERE id = $1;
+
 -- name: SetPrimaryUUID :execrows
 WITH unset_previous AS (
     UPDATE account_uuids
@@ -71,3 +74,6 @@ SELECT EXISTS (
     FROM account_pfps
     WHERE account_id = $1
 );
+
+-- name: DeleteAccount :execrows
+DELETE FROM accounts WHERE id = $1;

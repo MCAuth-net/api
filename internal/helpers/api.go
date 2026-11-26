@@ -33,6 +33,13 @@ func SendError(c fiber.Ctx, status int, err string) error {
 func WrongBody(c fiber.Ctx) error {
 	return SendError(c, 400, "Wrong body")
 }
+func NeedsSudo(c fiber.Ctx) error {
+	return c.Status(403).JSON(fiber.Map{
+		"success": false,
+		"error":   nil,
+		"sudo":    true,
+	})
+}
 
 type UserAgentInfo struct {
 	Browser        string `json:"browser"`

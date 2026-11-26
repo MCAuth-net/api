@@ -11,6 +11,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const change2FAMethods = `-- name: Change2FAMethods :execrows
+UPDATE accounts SET tfa_methods = $2 WHERE id = $1
+`
+
+type Change2FAMethodsParams struct {
+	ID         int64    `json:"id"`
+	TfaMethods []string `json:"tfa_methods"`
+}
+
+func (q *Queries) Change2FAMethods(ctx context.Context, arg Change2FAMethodsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, change2FAMethods, arg.ID, arg.TfaMethods)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const changeColor = `-- name: ChangeColor :execrows
 UPDATE accounts SET color = $2 WHERE id = $1
 `
@@ -104,8 +121,20 @@ func (q *Queries) ChangePfp(ctx context.Context, arg ChangePfpParams) (int64, er
 	return result.RowsAffected(), nil
 }
 
+const deleteAccount = `-- name: DeleteAccount :execrows
+DELETE FROM accounts WHERE id = $1
+`
+
+func (q *Queries) DeleteAccount(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAccount, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getAccount = `-- name: GetAccount :one
-SELECT id, email, password, name, color FROM accounts WHERE id = $1
+SELECT id, email, password, name, color, tfa_methods FROM accounts WHERE id = $1
 `
 
 func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
@@ -117,12 +146,13 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
 		&i.Password,
 		&i.Name,
 		&i.Color,
+		&i.TfaMethods,
 	)
 	return i, err
 }
 
 const getAccountByEmail = `-- name: GetAccountByEmail :one
-SELECT id, email, password, name, color FROM accounts WHERE email = $1
+SELECT id, email, password, name, color, tfa_methods FROM accounts WHERE email = $1
 `
 
 func (q *Queries) GetAccountByEmail(ctx context.Context, email pgtype.Text) (Account, error) {
@@ -134,12 +164,13 @@ func (q *Queries) GetAccountByEmail(ctx context.Context, email pgtype.Text) (Acc
 		&i.Password,
 		&i.Name,
 		&i.Color,
+		&i.TfaMethods,
 	)
 	return i, err
 }
 
 const getAccountByUUID = `-- name: GetAccountByUUID :one
-SELECT a.id, a.email, a.password, a.name, a.color
+SELECT a.id, a.email, a.password, a.name, a.color, a.tfa_methods
 FROM account_uuids u
     JOIN accounts a ON a.id = u.account_id
 WHERE u.uuid = $1
@@ -154,12 +185,13 @@ func (q *Queries) GetAccountByUUID(ctx context.Context, uuid pgtype.UUID) (Accou
 		&i.Password,
 		&i.Name,
 		&i.Color,
+		&i.TfaMethods,
 	)
 	return i, err
 }
 
 const getAccountFromSessionToken = `-- name: GetAccountFromSessionToken :one
-SELECT a.id, a.email, a.password, a.name, a.color, s.expires AS expires, u.uuid AS uuid
+SELECT a.id, a.email, a.password, a.name, a.color, a.tfa_methods, s.expires AS expires, s.activated, s.id AS session_id, u.uuid AS uuid
 FROM accounts a
     LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
     JOIN sessions s ON s.account_id = a.id
@@ -167,13 +199,16 @@ WHERE s.token = $1
 `
 
 type GetAccountFromSessionTokenRow struct {
-	ID       int64              `json:"id"`
-	Email    pgtype.Text        `json:"email"`
-	Password pgtype.Text        `json:"password"`
-	Name     pgtype.Text        `json:"name"`
-	Color    string             `json:"color"`
-	Expires  pgtype.Timestamptz `json:"expires"`
-	Uuid     pgtype.UUID        `json:"uuid"`
+	ID         int64              `json:"id"`
+	Email      pgtype.Text        `json:"email"`
+	Password   pgtype.Text        `json:"password"`
+	Name       pgtype.Text        `json:"name"`
+	Color      string             `json:"color"`
+	TfaMethods []string           `json:"tfa_methods"`
+	Expires    pgtype.Timestamptz `json:"expires"`
+	Activated  bool               `json:"activated"`
+	SessionID  int64              `json:"session_id"`
+	Uuid       pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) (GetAccountFromSessionTokenRow, error) {
@@ -185,26 +220,30 @@ func (q *Queries) GetAccountFromSessionToken(ctx context.Context, token string) 
 		&i.Password,
 		&i.Name,
 		&i.Color,
+		&i.TfaMethods,
 		&i.Expires,
+		&i.Activated,
+		&i.SessionID,
 		&i.Uuid,
 	)
 	return i, err
 }
 
 const getAccountWithUUID = `-- name: GetAccountWithUUID :one
-SELECT a.id, a.email, a.password, a.name, a.color, u.uuid AS uuid
+SELECT a.id, a.email, a.password, a.name, a.color, a.tfa_methods, u.uuid AS uuid
 FROM accounts a
     LEFT JOIN account_uuids u ON u.account_id = a.id AND u.selected = TRUE
 WHERE a.id = $1
 `
 
 type GetAccountWithUUIDRow struct {
-	ID       int64       `json:"id"`
-	Email    pgtype.Text `json:"email"`
-	Password pgtype.Text `json:"password"`
-	Name     pgtype.Text `json:"name"`
-	Color    string      `json:"color"`
-	Uuid     pgtype.UUID `json:"uuid"`
+	ID         int64       `json:"id"`
+	Email      pgtype.Text `json:"email"`
+	Password   pgtype.Text `json:"password"`
+	Name       pgtype.Text `json:"name"`
+	Color      string      `json:"color"`
+	TfaMethods []string    `json:"tfa_methods"`
+	Uuid       pgtype.UUID `json:"uuid"`
 }
 
 func (q *Queries) GetAccountWithUUID(ctx context.Context, id int64) (GetAccountWithUUIDRow, error) {
@@ -216,13 +255,14 @@ func (q *Queries) GetAccountWithUUID(ctx context.Context, id int64) (GetAccountW
 		&i.Password,
 		&i.Name,
 		&i.Color,
+		&i.TfaMethods,
 		&i.Uuid,
 	)
 	return i, err
 }
 
 const getAccounts = `-- name: GetAccounts :many
-SELECT id, email, password, name, color FROM accounts ORDER BY id
+SELECT id, email, password, name, color, tfa_methods FROM accounts ORDER BY id
 `
 
 func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
@@ -240,6 +280,7 @@ func (q *Queries) GetAccounts(ctx context.Context) ([]Account, error) {
 			&i.Password,
 			&i.Name,
 			&i.Color,
+			&i.TfaMethods,
 		); err != nil {
 			return nil, err
 		}

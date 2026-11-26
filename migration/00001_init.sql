@@ -4,7 +4,8 @@ CREATE TABLE accounts (
     email varchar UNIQUE,
     password varchar,
     name varchar,
-    color varchar NOT NULL DEFAULT 'green'
+    color varchar NOT NULL DEFAULT 'green',
+    tfa_methods varchar[] NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE account_uuids (
@@ -29,7 +30,8 @@ CREATE TABLE sessions (
     token varchar(64) NOT NULL UNIQUE,
     ip inet NOT NULL,
     agent varchar NOT NULL,
-    expires timestamptz NOT NULL DEFAULT NOW() + INTERVAL '30 days'
+    expires timestamptz NOT NULL DEFAULT NOW() + INTERVAL '30 days',
+    activated bool NOT NULL DEFAULT false
 );
 
 CREATE TABLE logins (

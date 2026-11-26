@@ -83,7 +83,7 @@ func main() {
 
 	v1 := app.Group("/v1")
 
-	apiutil.BuildRoutes(v1, getRoutes(rdb, queries, store), helpers.Auth(queries))
+	apiutil.BuildRoutes(v1, getRoutes(rdb, queries, store), helpers.Auth(queries, rdb))
 	oauth.Init(v1.Group("/oauth2"), pool, rdb)
 
 	if err := api.EasyListen(); err != nil {

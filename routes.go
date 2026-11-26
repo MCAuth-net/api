@@ -4,6 +4,7 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/routes"
+	tfa "MCAuth-api/internal/routes/2fa"
 	"MCAuth-api/internal/routes/client"
 	"MCAuth-api/internal/routes/profile"
 	"fmt"
@@ -52,8 +53,23 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 		},
 		"profile": fiber.Map{
 			apiutil.NeedsAuth: true,
-			"me":              apiutil.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetMe(c, account, queries, rdb) })),
-			"pfp":             apiutil.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetPfp(c, account, queries) })),
+			fiber.MethodDelete: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+				if !account.Sudo() {
+					return helpers.NeedsSudo(c)
+				}
+
+				ctx, cancel := apiutil.GetContext()
+				defer cancel()
+
+				_, err := queries.DeleteAccount(ctx, account.Account.ID)
+				if err != nil {
+					return apiutil.HandleError(c, err)
+				}
+
+				return helpers.SendNoError(c)
+			}),
+			"me":  apiutil.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetMe(c, account, queries, rdb) })),
+			"pfp": apiutil.Get(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.GetPfp(c, account, queries) })),
 			"change": fiber.Map{
 				apiutil.Limiter: limiter.New(limiter.Config{
 					Max:        3,
@@ -120,6 +136,51 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 					}),
 				},
 				"pfp": apiutil.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangePfp(c, account, queries) })),
+				"2fa_methods": fiber.Map{
+					apiutil.Limiter: limiter.New(limiter.Config{
+						Max:        5,
+						Expiration: time.Minute,
+						Storage:    store,
+						KeyGenerator: func(c fiber.Ctx) string {
+							return fmt.Sprintf("v1:profile:change:%s:%s", c.Path(), c.IP())
+						},
+					}),
+					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.Change2FA(c, account, queries) }),
+				},
+			},
+			"2fa": fiber.Map{
+				apiutil.Limiter: limiter.New(limiter.Config{
+					Max:        10,
+					Expiration: time.Hour,
+					Storage:    store,
+					KeyGenerator: func(c fiber.Ctx) string {
+						account, ok := c.Locals(helpers.AccountKey).(helpers.AuthedAccount)
+						if !ok {
+							return "v1:profile:2fa:error"
+						}
+
+						return fmt.Sprintf("v1:profile:2fa:%s", account.Token)
+					},
+				}),
+				"app": fiber.Map{
+					fiber.MethodPatch: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return profile.Set2FA(c, account, queries, rdb)
+					}),
+					fiber.MethodDelete: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return profile.Remove2FA(c, account, queries)
+					}),
+					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return tfa.AuthWithApp(c, account, queries, rdb)
+					}, true),
+				},
+				"email": fiber.Map{
+					"start": apiutil.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return tfa.AuthWithEmailStart(c, account, rdb)
+					}, true)),
+					"end": apiutil.Post(helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return tfa.AuthWithEmailEnd(c, account, queries, rdb)
+					}, true)),
+				},
 			},
 		},
 		"client": fiber.Map{

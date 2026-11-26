@@ -11,11 +11,12 @@ import (
 )
 
 type Account struct {
-	ID       int64       `json:"id"`
-	Email    pgtype.Text `json:"email"`
-	Password pgtype.Text `json:"password"`
-	Name     pgtype.Text `json:"name"`
-	Color    string      `json:"color"`
+	ID         int64       `json:"id"`
+	Email      pgtype.Text `json:"email"`
+	Password   pgtype.Text `json:"password"`
+	Name       pgtype.Text `json:"name"`
+	Color      string      `json:"color"`
+	TfaMethods []string    `json:"tfa_methods"`
 }
 
 type AccountPfp struct {
@@ -73,4 +74,10 @@ type Session struct {
 	Ip        netip.Addr         `json:"ip"`
 	Agent     string             `json:"agent"`
 	Expires   pgtype.Timestamptz `json:"expires"`
+	Activated bool               `json:"activated"`
+}
+
+type Tfa struct {
+	AccountID int64  `json:"account_id"`
+	Token     string `json:"token"`
 }

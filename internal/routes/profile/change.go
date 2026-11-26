@@ -313,3 +313,40 @@ func ChangePfp(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Que
 
 	return helpers.SendNoError(c)
 }
+
+type Change2FARequest struct {
+	Methods []string `json:"methods"`
+}
+
+func Change2FA(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries) error {
+	if !account.Sudo() {
+		return helpers.NeedsSudo(c)
+	}
+
+	body, err := apiutil.ParseBody[Change2FARequest](c)
+	if err != nil {
+		return apiutil.HandleError(c, err)
+	}
+
+	for _, method := range body.Methods {
+		if !slices.Contains([]string{
+			"app",
+			"email",
+		}, method) {
+			return helpers.WrongBody(c)
+		}
+	}
+
+	ctx, cancel := apiutil.GetContext()
+	defer cancel()
+
+	_, err = queries.Change2FAMethods(ctx, database.Change2FAMethodsParams{
+		ID:         account.Account.ID,
+		TfaMethods: body.Methods,
+	})
+	if err != nil {
+		return apiutil.HandleError(c, err)
+	}
+
+	return helpers.SendNoError(c)
+}

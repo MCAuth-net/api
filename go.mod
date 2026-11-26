@@ -3,7 +3,7 @@ module MCAuth-api
 go 1.27.4
 
 require (
-	git.jgj52.dev/JGJ52/apiutil v0.0.0-20261123180913-182f2a918bcf
+	git.jgj52.dev/JGJ52/apiutil v0.0.0-20261126190509-08dbe80eb2c5
 	github.com/go-oauth2/oauth2/v4 v4.6.0
 	github.com/goccy/go-json v0.12.0
 	github.com/gofiber/fiber/v3 v3.7.0
@@ -17,6 +17,7 @@ require (
 )
 
 require (
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/gofiber/schema v1.10.0 // indirect
 	github.com/gofiber/utils/v2 v2.6.5 // indirect
@@ -30,6 +31,7 @@ require (
 	github.com/mfridman/interpolate v0.2.0 // indirect
 	github.com/molecule-man/go-brrr v1.3.1 // indirect
 	github.com/philhofer/fwd v1.2.1 // indirect
+	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/pressly/goose/v3 v3.30.1 // indirect
 	github.com/sethvargo/go-retry v0.6.0 // indirect
 	github.com/tinylib/msgp v1.6.5 // indirect

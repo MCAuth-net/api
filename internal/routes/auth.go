@@ -4,9 +4,6 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/minecraft"
-	"context"
-	"fmt"
-	"net/netip"
 	"strings"
 
 	"git.jgj52.dev/JGJ52/apiutil"
@@ -14,63 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
-
-func CreateSession(c fiber.Ctx, ctx context.Context, queries *database.Queries, id int64, account *database.Account) error {
-	ip, err := netip.ParseAddr(c.IP())
-	if err != nil {
-		return err
-	}
-
-	token, err := helpers.GenerateToken()
-	if err != nil {
-		return err
-	}
-
-	if account == nil {
-		res, err := queries.GetAccount(ctx, id)
-		if err != nil {
-			return err
-		}
-		account = &res
-	}
-
-	agent := c.UserAgent()
-	if account.Email.Valid {
-		parsed := helpers.ParseUserAgent(agent)
-
-		err = apiutil.SendEmail([]string{account.Email.String}, "New login", "new_login", map[string]any{
-			"browser": fmt.Sprintf("%s %s", parsed.Browser, parsed.BrowserVersion),
-			"os":      fmt.Sprintf("%s %s", parsed.OS, parsed.OSVersion),
-			"device":  parsed.Device,
-			"ip":      ip.String(),
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	session, err := queries.CreateSession(ctx, database.CreateSessionParams{
-		AccountID: id,
-		Token:     token,
-		Ip:        ip,
-		Agent:     agent,
-	})
-	if err != nil {
-		return err
-	}
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "session",
-		Value:    token,
-		Domain:   ".mcauth.net",
-		Path:     "/",
-		Expires:  session.Time,
-		Secure:   true,
-		HTTPOnly: true,
-		SameSite: "Lax",
-	})
-	return nil
-}
 
 type LoginRequest struct {
 	Email    string `json:"email"`
@@ -127,7 +67,7 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 		return helpers.SendError(c, 401, "Login failed")
 	}
 
-	err = CreateSession(c, ctx, queries, account.ID, &account)
+	err = helpers.CreateSession(c, ctx, queries, account.ID, &account)
 	if err != nil {
 		return apiutil.HandleError(c, err)
 	}

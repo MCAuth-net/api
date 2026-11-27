@@ -17,6 +17,7 @@ import (
 	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/redis/go-redis/v9"
@@ -27,7 +28,7 @@ type ChangeEmailRequest struct {
 	Password string `json:"password"`
 }
 
-func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) error {
+func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries, rdb *redis.Client) error {
 	body, err := apiutil.ParseBody[ChangeEmailRequest](c)
 	if err != nil {
 		return apiutil.HandleError(c, err)
@@ -48,6 +49,16 @@ func ChangeEmail(c fiber.Ctx, account helpers.AuthedAccount, rdb *redis.Client) 
 
 	ctx, cancel := apiutil.GetContext()
 	defer cancel()
+
+	_, err = queries.GetAccountByEmail(ctx, pgtype.Text{
+		String: body.NewEmail,
+		Valid:  body.NewEmail != "",
+	})
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return apiutil.HandleError(c, err)
+	} else if err != nil {
+		return helpers.SendError(c, 403, "Email already exists")
+	}
 
 	code, err := helpers.GenerateOTP()
 	if err != nil {

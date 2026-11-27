@@ -80,7 +80,9 @@ func getRoutes(rdb *redis.Client, queries *database.Queries, store fiber.Storage
 					},
 				}),
 				"email": fiber.Map{
-					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error { return profile.ChangeEmail(c, account, rdb) }),
+					fiber.MethodPost: helpers.Map(func(c fiber.Ctx, account helpers.AuthedAccount) error {
+						return profile.ChangeEmail(c, account, queries, rdb)
+					}),
 					"confirm": fiber.Map{
 						apiutil.Limiter: limiter.New(limiter.Config{
 							Max:        10,

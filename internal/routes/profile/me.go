@@ -59,6 +59,7 @@ func GetMe(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries
 		"pfp":          pfp,
 		"2fa":          account.Account.TfaMethods,
 		"sudo":         sudo == 1,
+		"password":     account.Account.Password.Valid,
 	})
 }
 

@@ -4,11 +4,13 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/minecraft"
+	"errors"
 	"strings"
 
 	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -35,6 +37,9 @@ func Login(c fiber.Ctx, queries *database.Queries) error {
 			Valid:  true,
 		})
 		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return helpers.SendError(c, 404, "Email not found")
+			}
 			return helpers.SendError(c, 401, "Login failed")
 		}
 	case body.Name != "":

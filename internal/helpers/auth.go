@@ -71,6 +71,9 @@ func Auth(queries *database.Queries, rdb *redis.Client) fiber.Handler {
 			Account: account,
 			UUIDs:   uuids,
 			Sudo: func() bool {
+				if len(account.TfaMethods) == 0 {
+					return true
+				}
 				sudo, err := rdb.Exists(c.Context(), fmt.Sprintf("sudo:%d", account.SessionID)).Result()
 				if err != nil {
 					slog.Debug(err.Error())

@@ -4,7 +4,6 @@ import (
 	"MCAuth-api/internal/database"
 	"MCAuth-api/internal/helpers"
 	"MCAuth-api/internal/minecraft"
-	"fmt"
 
 	"git.jgj52.dev/JGJ52/apiutil"
 	"github.com/gofiber/fiber/v3"
@@ -43,11 +42,6 @@ func GetMe(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries
 		return apiutil.HandleError(c, err)
 	}
 
-	sudo, err := rdb.Exists(ctx, fmt.Sprintf("sudo:%s", account.Token)).Result()
-	if err != nil {
-		return apiutil.HandleError(c, err)
-	}
-
 	return c.JSON(fiber.Map{
 		"id":           account.Account.ID,
 		"email":        account.Account.Email,
@@ -58,7 +52,7 @@ func GetMe(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Queries
 		"uuids":        uuids,
 		"pfp":          pfp,
 		"2fa":          account.Account.TfaMethods,
-		"sudo":         sudo == 1,
+		"sudo":         account.Sudo(),
 		"password":     account.Account.Password.Valid,
 	})
 }

@@ -345,6 +345,10 @@ func Change2FA(c fiber.Ctx, account helpers.AuthedAccount, queries *database.Que
 		return apiutil.HandleError(c, err)
 	}
 
+	if body.Methods == nil {
+		body.Methods = make([]string, 0)
+	}
+
 	for _, method := range body.Methods {
 		if !slices.Contains([]string{
 			"app",
